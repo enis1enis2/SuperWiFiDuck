@@ -22,6 +22,31 @@
   - [x] `pio run -e esp32-s2-kaluga-1` success
   - [x] `pio run -e esp32-s3-devkitc-1` success
   - [x] `pio test --without-uploading --without-testing` success
+- [x] Implement AP+STA dual WiFi runtime (`src/webserver.cpp`, `src/webserver.h`):
+  - [x] AP remains active at `192.168.4.1`
+  - [x] STA autoconnect on boot when configured
+  - [x] Periodic non-blocking STA reconnect strategy
+  - [x] Runtime `wifiInfo()` output (AP IP, STA status/IP, mDNS endpoint)
+- [x] Extend persistent settings with STA fields (`src/settings.cpp`, `src/settings.h`):
+  - [x] `sta_ssid`, `sta_password`, `sta_autoconnect`
+  - [x] legacy settings migration path and defaults
+- [x] Add CLI controls (`src/cli.cpp`):
+  - [x] `wifi`
+  - [x] `sta_connect`
+  - [x] `sta_disconnect`
+- [x] Add STA controls to web settings UI:
+  - [x] `web/settings.html`
+  - [x] `web/settings.js` (key/value parser + actions)
+  - [x] `web/i18n.js` (EN/TR STA labels/prompts/status text)
+- [x] Regenerate embedded web assets:
+  - [x] `python webconverter.py`
+  - [x] `src/webfiles.h` updated
+- [x] Update docs:
+  - [x] `README.md` AP+STA usage note added
+- [x] Verification after AP+STA implementation:
+  - [x] `pio run -e esp32-s2-kaluga-1` success
+  - [x] `pio run -e esp32-s3-devkitc-1` success
+  - [x] `pio test --without-uploading --without-testing` success
 
 ## Remaining External Blocker
 - [ ] On-device test upload still blocked by serial port lock on `COM5` (`PermissionError(13)`).

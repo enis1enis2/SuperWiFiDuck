@@ -20,6 +20,9 @@ namespace settings {
     const char* getPassword();
     const char* getChannel();
     const char* getAutorun();
+    const char* getStaSSID();
+    const char* getStaPassword();
+    bool getStaAutoconnect();
 
     int getChannelNum();
 
@@ -29,4 +32,8 @@ namespace settings {
     void setPassword(const char* password);
     void setChannel(const char* channel);
     void setAutorun(const char* autorun);
+    void setStaSSID(const char* ssid);
+    void setStaPassword(const char* password);
+    void setStaAutoconnect(const char* autoconnect);
+    void setStaAutoconnectBool(bool autoconnect);
 }

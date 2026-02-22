@@ -4,9 +4,13 @@
  */
 
 #pragma once
+#include <Arduino.h>
 
 namespace webserver {
     void begin();
     void update();
     void send(const char* str);
+    void staConnect();
+    void staDisconnect();
+    String wifiInfo();
 }

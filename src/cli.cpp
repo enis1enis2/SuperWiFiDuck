@@ -20,6 +20,7 @@
 #include "duckscript.h"
 #include "settings.h"
 #include "config.h"
+#include "webserver.h"
 
 namespace cli {
     // ===== PRIVATE ===== //
@@ -130,6 +131,35 @@ namespace cli {
         cli.addCommand("settings", [](cmd* c) {
             settings::load();
             print(settings::toString());
+        });
+
+        /**
+         * \brief Create wifi command
+         *
+         * Prints AP/STA runtime network info.
+         */
+        cli.addCommand("wifi", [](cmd* c) {
+            print(webserver::wifiInfo());
+        });
+
+        /**
+         * \brief Create sta_connect command
+         *
+         * Starts STA connection attempt immediately.
+         */
+        cli.addCommand("sta_connect", [](cmd* c) {
+            webserver::staConnect();
+            print("> STA connect requested");
+        });
+
+        /**
+         * \brief Create sta_disconnect command
+         *
+         * Disconnects STA interface.
+         */
+        cli.addCommand("sta_disconnect", [](cmd* c) {
+            webserver::staDisconnect();
+            print("> STA disconnected");
         });
 
         /**

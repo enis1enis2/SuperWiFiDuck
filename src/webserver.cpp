@@ -27,6 +27,9 @@ void reply(AsyncWebServerRequest* request, int code, const char* type, const uin
         request->beginResponse(code, type, data, len);
 
     response->addHeader("Content-Encoding", "gzip");
+    response->addHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+    response->addHeader("Pragma", "no-cache");
+    response->addHeader("Expires", "0");
     request->send(response);
 }
 
@@ -42,6 +45,72 @@ namespace webserver {
 
     bool reboot = false;
     IPAddress apIP(192, 168, 4, 1);
+    unsigned long staLastAttemptMs = 0;
+    unsigned long staLastConnectStartMs = 0;
+    unsigned long mdnsLastAttemptMs = 0;
+    bool mdnsStarted = false;
+    const unsigned long STA_RECONNECT_INTERVAL_MS = 10000;
+    const unsigned long STA_CONNECTING_WINDOW_MS = 15000;
+    const unsigned long MDNS_RETRY_INTERVAL_MS = 10000;
+
+    bool hasStaCredentials() {
+        const char* ssid = settings::getStaSSID();
+        return ssid && (strlen(ssid) > 0);
+    }
+
+    bool isStaConnected() {
+        return WiFi.status() == WL_CONNECTED;
+    }
+
+    bool isStaConnecting() {
+        if (!hasStaCredentials()) return false;
+        if (isStaConnected()) return false;
+        if (staLastConnectStartMs == 0) return false;
+        return (millis() - staLastConnectStartMs) < STA_CONNECTING_WINDOW_MS;
+    }
+
+    const char* staStatusString() {
+        if (!hasStaCredentials()) return "disabled";
+        if (isStaConnected()) return "connected";
+        if (isStaConnecting()) return "connecting";
+        return "disconnected";
+    }
+
+    void startStaConnection() {
+        if (!hasStaCredentials()) {
+            debugln("STA connect skipped: no SSID configured");
+            return;
+        }
+
+        const char* ssid = settings::getStaSSID();
+        const char* pass = settings::getStaPassword();
+
+        debugf("STA connect attempt to \"%s\"\n", ssid);
+        if (pass && (strlen(pass) > 0)) {
+            WiFi.begin(ssid, pass);
+        } else {
+            WiFi.begin(ssid);
+        }
+
+        staLastAttemptMs = millis();
+        staLastConnectStartMs = staLastAttemptMs;
+    }
+
+    void ensureMdnsStarted() {
+        if (mdnsStarted) return;
+
+        unsigned long now = millis();
+        if ((mdnsLastAttemptMs != 0) && ((now - mdnsLastAttemptMs) < MDNS_RETRY_INTERVAL_MS)) return;
+        mdnsLastAttemptMs = now;
+
+        if (MDNS.begin(HOSTNAME)) {
+            MDNS.addService("http", "tcp", 80);
+            mdnsStarted = true;
+            debugf("mDNS started: http://%s.local\n", HOSTNAME);
+        } else {
+            debugln("mDNS start failed, will retry");
+        }
+    }
 
     void wsEvent(AsyncWebSocket* server, AsyncWebSocketClient* client, AwsEventType type, void* arg, uint8_t* data, size_t len) {
         if (type == WS_EVT_CONNECT) {
@@ -86,11 +155,19 @@ namespace webserver {
     void begin() {
         // Access Point
         WiFi.hostname(HOSTNAME);
+        WiFi.mode(WIFI_AP_STA);
 
-        // WiFi.mode(WIFI_AP_STA);
         WiFi.softAP(settings::getSSID(), settings::getPassword(), settings::getChannelNum());
         WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
-        debugf("Started Access Point \"%s\":\"%s\"\n", settings::getSSID(), settings::getPassword());
+        debugf("Started Access Point \"%s\":\"%s\" (%s)\n", settings::getSSID(), settings::getPassword(), WiFi.softAPIP().toString().c_str());
+
+        if (settings::getStaAutoconnect() && hasStaCredentials()) {
+            startStaConnection();
+        } else {
+            debugln("STA autoconnect disabled or no STA SSID configured");
+        }
+
+        ensureMdnsStarted();
 
         // Webserver
         server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) {
@@ -179,8 +256,6 @@ namespace webserver {
         dnsServer.setErrorReplyCode(DNSReplyCode::ServerFailure);
         dnsServer.start(53, URL, apIP);
 
-        MDNS.addService("http", "tcp", 80);
-
         // Websocket
         ws.onEvent(wsEvent);
         server.addHandler(&ws);
@@ -194,9 +269,67 @@ namespace webserver {
         ArduinoOTA.handle();
         if (reboot) ESP.restart();
         dnsServer.processNextRequest();
+
+        ensureMdnsStarted();
+
+        if (!hasStaCredentials()) {
+            if (isStaConnected()) {
+                WiFi.disconnect(false, false);
+                debugln("STA disconnected because STA SSID was cleared");
+            }
+            staLastConnectStartMs = 0;
+            return;
+        }
+
+        if (settings::getStaAutoconnect() && !isStaConnected() && !isStaConnecting()) {
+            unsigned long now = millis();
+            if ((staLastAttemptMs == 0) || ((now - staLastAttemptMs) >= STA_RECONNECT_INTERVAL_MS)) {
+                startStaConnection();
+            }
+        }
     }
 
     void send(const char* str) {
         if (currentClient) currentClient->text(str);
+    }
+
+    void staConnect() {
+        startStaConnection();
+    }
+
+    void staDisconnect() {
+        WiFi.disconnect(false, false);
+        staLastConnectStartMs = 0;
+        debugln("STA disconnected");
+    }
+
+    String wifiInfo() {
+        String info;
+        info.reserve(256);
+
+        info += "ap_ip=";
+        info += WiFi.softAPIP().toString();
+        info += "\n";
+        info += "ap_ssid=";
+        info += settings::getSSID();
+        info += "\n";
+        info += "sta_ssid=";
+        info += settings::getStaSSID();
+        info += "\n";
+        info += "sta_status=";
+        info += staStatusString();
+        info += "\n";
+        info += "sta_ip=";
+        info += (isStaConnected() ? WiFi.localIP().toString() : "0.0.0.0");
+        info += "\n";
+        info += "sta_autoconnect=";
+        info += settings::getStaAutoconnect() ? "1" : "0";
+        info += "\n";
+        info += "mdns=http://";
+        info += HOSTNAME;
+        info += ".local";
+        info += "\n";
+
+        return info;
     }
 }

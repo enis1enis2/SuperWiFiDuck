@@ -64,6 +64,11 @@ Ek uygulama kurma, SD karta kopyalama veya her değişiklikte yeniden derleme ge
 4. İlk Ducky Script dosyanızı yazın, kaydedin ve çalıştırın.
 5. Güvenlik için `Settings` bölümünden SSID ve şifreyi değiştirin.
 
+AP + STA modu:
+- Cihazın kendi AP erişimi (`192.168.4.1`) her zaman açık kalır.
+- `Settings` bölümünden STA (router) bilgileri girildiğinde cihaz aynı anda ev/ofis ağına da bağlanır.
+- STA bağlantısı kurulduktan sonra GUI'ye router'ın verdiği IP adresi veya `http://wifiduck.local` üzerinden erişebilirsiniz.
+
 **Şifreyi unuttuysanız:**  
 `Erase Flash: Sketch + WiFi Settings` seçeneğiyle yeniden yükleme yapın.
 

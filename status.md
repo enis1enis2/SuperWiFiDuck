@@ -2,7 +2,7 @@
 
 ## Snapshot
 - Project: `SuperWiFiDuck` (ESP32 S2/S3 BadUSB + WiFi management interface)
-- Date reviewed: 2026-02-21 (updated)
+- Date reviewed: 2026-02-22 (updated)
 - Files tracked in repo tree: 76
 - Main firmware entry: `src/main.cpp`
 - Build system: PlatformIO (`platformio.ini`)
@@ -10,6 +10,10 @@
 ## What Is Implemented
 - USB HID keyboard startup path is active (`duckparser::beginKeyboard()`, `USB.begin()`).
 - WiFi AP mode + captive DNS + async web server + websocket command bridge are implemented in `src/webserver.cpp`.
+- Dual WiFi mode (AP+STA) is now implemented:
+  - AP remains active at `192.168.4.1`
+  - optional STA client connection to router network
+  - LAN access via STA IP and `http://wifiduck.local`
 - OTA update paths exist (ArduinoOTA and web `/update` endpoint).
 - Script storage and file operations are implemented on LittleFS (`src/spiffs.cpp`).
 - CLI command surface is broad (`help`, `settings`, `set`, `run`, `stop`, `ls`, `write`, `stream`, etc.) in `src/cli.cpp`.
@@ -90,6 +94,17 @@
     - `platform.ini` -> `platformio.ini`
     - updated old core reference to ESP32 core
   - aligned web credits core reference with ESP32 (`web/credits.html`)
+- Implemented AP+STA feature set end-to-end:
+  - extended persistent settings with `sta_ssid`, `sta_password`, `sta_autoconnect` (`src/settings.cpp`, `src/settings.h`)
+  - added settings migration path from legacy struct to new struct (`src/settings.cpp`)
+  - added runtime STA controls/info API: `staConnect()`, `staDisconnect()`, `wifiInfo()` (`src/webserver.h`, `src/webserver.cpp`)
+  - switched WiFi startup to `WIFI_AP_STA` and added non-blocking reconnect loop with 10s backoff (`src/webserver.cpp`)
+  - enabled mDNS startup/retry and exposed endpoint info (`src/webserver.cpp`)
+  - added CLI commands: `wifi`, `sta_connect`, `sta_disconnect` (`src/cli.cpp`)
+  - updated Settings web UI with STA controls/status (`web/settings.html`, `web/settings.js`)
+  - added EN/TR translations for STA GUI strings (`web/i18n.js`)
+  - regenerated embedded web assets (`src/webfiles.h`) via `python webconverter.py`
+  - updated README usage with AP+STA LAN access note (`README.md`)
 
 ## Remaining Items
 1. Run on-device tests once target board/serial port is available (current `pio test` upload step fails with `Error 2` on both test envs).
@@ -113,3 +128,8 @@
   - Verified API cleanup safety: no remaining `getRepeats()` references in codebase
   - Reviewed `src/locale/locale_types.h`: added `<stdint.h>` and `<stddef.h>` includes are valid and consistent with type usage
 - Runtime/flash-on-device tests were not executed in this review.
+- Latest verification pass (2026-02-22, AP+STA implementation):
+  - `python webconverter.py`: SUCCESS (web assets regenerated)
+  - `pio run -e esp32-s2-kaluga-1`: SUCCESS
+  - `pio run -e esp32-s3-devkitc-1`: SUCCESS
+  - `pio test --without-uploading --without-testing`: PASSED (`esp32-s2-test`, `esp32-s3-test`)

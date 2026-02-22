@@ -62,6 +62,49 @@
 				<button class="danger" id="reset" data-i18n="settings.reset">Reset settings</button>
 			</section>
 			<section>
+				<h1 data-i18n="settings.section.sta">Station (Client WiFi)</h1>
+				<table>
+				<tr>
+					<td data-i18n="settings.staSsid">STA SSID:</td>
+					<td id="sta_ssid"></td>
+					<td><button class="primary" id="edit_sta_ssid" data-i18n="settings.edit">edit</button></td>
+				</tr>
+				<tr>
+					<td data-i18n="settings.staPassword">STA Password:</td>
+					<td id="sta_password"></td>
+					<td><button class="primary" id="edit_sta_password" data-i18n="settings.edit">edit</button></td>
+				</tr>
+				<tr>
+					<td data-i18n="settings.staAutoconnect">STA Autoconnect:</td>
+					<td id="sta_autoconnect"></td>
+					<td><button class="warn" id="toggle_sta_autoconnect" data-i18n="settings.enable">enable</button></td>
+				</tr>
+				<tr>
+					<td data-i18n="settings.staStatus">STA Status:</td>
+					<td id="sta_status"></td>
+					<td></td>
+				</tr>
+				<tr>
+					<td data-i18n="settings.staIp">STA IP:</td>
+					<td id="sta_ip"></td>
+					<td></td>
+				</tr>
+				<tr>
+					<td data-i18n="settings.staMdns">mDNS:</td>
+					<td id="sta_mdns"></td>
+					<td></td>
+				</tr>
+				<tr>
+					<td data-i18n="settings.staActions">Actions:</td>
+					<td>
+						<button class="success" id="sta_connect" data-i18n="settings.connect">connect</button>
+						<button class="danger" id="sta_disconnect" data-i18n="settings.disconnect">disconnect</button>
+					</td>
+					<td></td>
+				</tr>
+				</table>
+			</section>
+			<section>
 				<h1 data-i18n="settings.section.update">Update</h1>
 
 				<p data-i18n-html="settings.updateHelp">
