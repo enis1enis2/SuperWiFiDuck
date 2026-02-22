@@ -47,11 +47,21 @@ namespace webserver {
     IPAddress apIP(192, 168, 4, 1);
     unsigned long staLastAttemptMs = 0;
     unsigned long staLastConnectStartMs = 0;
+    unsigned long staConnectedSinceMs = 0;
+    uint16_t staLastDisconnectReason = 0;
     unsigned long mdnsLastAttemptMs = 0;
     bool mdnsStarted = false;
     const unsigned long STA_RECONNECT_INTERVAL_MS = 10000;
     const unsigned long STA_CONNECTING_WINDOW_MS = 15000;
     const unsigned long MDNS_RETRY_INTERVAL_MS = 10000;
+
+    bool isStaConnected();
+
+    uint32_t staUptimeSeconds() {
+        if (!isStaConnected()) return 0;
+        if (staConnectedSinceMs == 0) return 0;
+        return (uint32_t)((millis() - staConnectedSinceMs) / 1000);
+    }
 
     bool hasStaCredentials() {
         const char* ssid = settings::getStaSSID();
@@ -159,7 +169,19 @@ namespace webserver {
 
         WiFi.softAP(settings::getSSID(), settings::getPassword(), settings::getChannelNum());
         WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
-        debugf("Started Access Point \"%s\":\"%s\" (%s)\n", settings::getSSID(), settings::getPassword(), WiFi.softAPIP().toString().c_str());
+        debugf("Started Access Point \"%s\" (%s)\n", settings::getSSID(), WiFi.softAPIP().toString().c_str());
+
+        WiFi.onEvent([](WiFiEvent_t event, WiFiEventInfo_t info) {
+            if (event == ARDUINO_EVENT_WIFI_STA_CONNECTED) {
+                staConnectedSinceMs = millis();
+                staLastDisconnectReason = 0;
+            } else if (event == ARDUINO_EVENT_WIFI_STA_GOT_IP) {
+                if (staConnectedSinceMs == 0) staConnectedSinceMs = millis();
+            } else if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED) {
+                staConnectedSinceMs = 0;
+                staLastDisconnectReason = info.wifi_sta_disconnected.reason;
+            }
+        });
 
         if (settings::getStaAutoconnect() && hasStaCredentials()) {
             startStaConnection();
@@ -278,6 +300,7 @@ namespace webserver {
                 debugln("STA disconnected because STA SSID was cleared");
             }
             staLastConnectStartMs = 0;
+            staConnectedSinceMs = 0;
             return;
         }
 
@@ -300,6 +323,8 @@ namespace webserver {
     void staDisconnect() {
         WiFi.disconnect(false, false);
         staLastConnectStartMs = 0;
+        staConnectedSinceMs = 0;
+        staLastDisconnectReason = 0;
         debugln("STA disconnected");
     }
 
@@ -324,6 +349,15 @@ namespace webserver {
         info += "\n";
         info += "sta_autoconnect=";
         info += settings::getStaAutoconnect() ? "1" : "0";
+        info += "\n";
+        info += "sta_rssi=";
+        info += (isStaConnected() ? String(WiFi.RSSI()) : String(-127));
+        info += "\n";
+        info += "sta_uptime_s=";
+        info += String(staUptimeSeconds());
+        info += "\n";
+        info += "sta_last_disconnect_reason=";
+        info += String(staLastDisconnectReason);
         info += "\n";
         info += "mdns=http://";
         info += HOSTNAME;

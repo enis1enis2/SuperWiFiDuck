@@ -11,6 +11,7 @@ var file_list = "";
 
 // ! Variable to save interval for updating status continously
 var status_interval = undefined;
+var network_interval = undefined;
 
 // ! Unsaved content in the editor
 var unsaved_changed = false;
@@ -20,6 +21,106 @@ var file_opened = false;
 
 // ! Current file filter string
 var file_filter = "";
+var network_info_map = {};
+
+function parse_key_value_lines(msg) {
+  var map = {};
+  if (!msg) return map;
+
+  var lines = msg.split(/\n/);
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
+    if (!line) continue;
+
+    var sep = line.indexOf("=");
+    if (sep <= 0) continue;
+
+    var key = line.substring(0, sep).trim();
+    var value = line.substring(sep + 1).trim();
+    map[key] = value;
+  }
+
+  return map;
+}
+
+function set_text(id, value) {
+  var el = E(id);
+  if (!el) return;
+  el.textContent = (value === undefined || value === null || value === "") ? "-" : value;
+}
+
+function set_link(id, value) {
+  var el = E(id);
+  if (!el) return;
+
+  if (!value || value === "-") {
+    el.textContent = "-";
+    el.removeAttribute("href");
+    return;
+  }
+
+  el.textContent = value;
+  el.setAttribute("href", value);
+}
+
+function format_uptime(seconds) {
+  var total = parseInt(seconds, 10);
+  if (isNaN(total) || total < 0) return "-";
+
+  var hours = Math.floor(total / 3600);
+  var minutes = Math.floor((total % 3600) / 60);
+  var secs = total % 60;
+
+  var pad = function(n) {
+    return n < 10 ? "0" + n : String(n);
+  };
+
+  return pad(hours) + ":" + pad(minutes) + ":" + pad(secs);
+}
+
+function translate_sta_status(status) {
+  if (!status) return tr("index.network.status.disconnected");
+  var key = "index.network.status." + status;
+  var translated = tr(key);
+  return translated === key ? status : translated;
+}
+
+function render_network_dashboard(map) {
+  var info = map || {};
+  var staStatusRaw = info.sta_status || "disconnected";
+  var staConnected = staStatusRaw === "connected";
+  var staRssi = parseInt(info.sta_rssi, 10);
+  var lastReason = info.sta_last_disconnect_reason || "0";
+
+  set_text("net_ap_ip", info.ap_ip || tr("index.network.na"));
+  set_text("net_sta_status", translate_sta_status(staStatusRaw));
+  set_text("net_sta_ip", info.sta_ip || tr("index.network.na"));
+  set_text("net_sta_rssi", (staConnected && !isNaN(staRssi) && staRssi > -127) ? (String(staRssi) + " dBm") : "-");
+  set_text("net_sta_uptime", staConnected ? format_uptime(info.sta_uptime_s) : "-");
+  set_text("net_sta_last_reason", lastReason);
+  set_link("net_mdns", info.mdns || "-");
+}
+
+function update_network_dashboard() {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+  ws_send("wifi", function(msg) {
+    network_info_map = parse_key_value_lines(msg);
+    render_network_dashboard(network_info_map);
+  });
+}
+
+function start_network_interval() {
+  if (network_interval) return;
+  update_network_dashboard();
+  network_interval = setInterval(update_network_dashboard, 2000);
+}
+
+function stop_network_interval() {
+  if (!network_interval) return;
+  clearInterval(network_interval);
+  network_interval = undefined;
+}
 
 // ========== Global Functions ========== //
 
@@ -269,6 +370,7 @@ function save() {
 // ! Function that is called once the websocket connection was established
 function ws_connected() {
   update_file_list();
+  start_network_interval();
 }
 
 // ========== Startup ========== //
@@ -333,3 +435,7 @@ window.addEventListener("load", function() {
 
   ws_init();
 }, false);
+
+window.addEventListener("beforeunload", function() {
+  stop_network_interval();
+});

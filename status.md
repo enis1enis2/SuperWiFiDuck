@@ -1,135 +1,106 @@
 # Project Status
 
 ## Snapshot
-- Project: `SuperWiFiDuck` (ESP32 S2/S3 BadUSB + WiFi management interface)
-- Date reviewed: 2026-02-22 (updated)
-- Files tracked in repo tree: 76
-- Main firmware entry: `src/main.cpp`
-- Build system: PlatformIO (`platformio.ini`)
+- Date: 2026-02-22
+- Project: `SuperWiFiDuck`
+- Focus of this pass: `Risk Remediation + Network Dashboard`
+- Firmware targets verified: `esp32-s2-kaluga-1`, `esp32-s3-devkitc-1`
 
-## What Is Implemented
-- USB HID keyboard startup path is active (`duckparser::beginKeyboard()`, `USB.begin()`).
-- WiFi AP mode + captive DNS + async web server + websocket command bridge are implemented in `src/webserver.cpp`.
-- Dual WiFi mode (AP+STA) is now implemented:
-  - AP remains active at `192.168.4.1`
-  - optional STA client connection to router network
-  - LAN access via STA IP and `http://wifiduck.local`
-- OTA update paths exist (ArduinoOTA and web `/update` endpoint).
-- Script storage and file operations are implemented on LittleFS (`src/spiffs.cpp`).
-- CLI command surface is broad (`help`, `settings`, `set`, `run`, `stop`, `ls`, `write`, `stream`, etc.) in `src/cli.cpp`.
-- DuckyScript parsing/execution exists with support for `STRING`, `DELAY`, `DEFAULTDELAY`, `LOCALE`, `KEYCODE`, `LED` (`src/duckparser.cpp`, `src/duckscript.cpp`).
-- Web UI pages are present (`web/index.html`, `web/settings.html`, `web/terminal.html`, etc.).
+## Findings and Risks (Pre-Fix)
+### High Severity
+1. Plaintext credential exposure in default settings output (`src/settings.cpp`, surfaced via `src/cli.cpp`, `web/settings.js`).
+2. AP boot log leaked AP password (`src/webserver.cpp`).
 
-## Configuration Status
-- `platformio.ini` has four envs:
-  - `esp32-s2-kaluga-1`
-  - `esp32-s3-devkitc-1`
-  - `esp32-s2-test`
-  - `esp32-s3-test`
-- S3 env is configured with:
-  - `upload_port = COM5`
-  - `upload_speed = 115200`
-  - `ARDUINO_USB_MODE=1`
-  - `ARDUINO_USB_CDC_ON_BOOT=1`
-- Default AP credentials in `src/config.h`:
-  - SSID: `wifiduck`
-  - Password: `wifiduck`
+### Medium Severity
+1. STA password validation accepted `1..7` chars (`src/settings.cpp`, `web/settings.js`).
+2. CLI `set` echoed success even when validation failed (`src/cli.cpp`, `src/settings.cpp`).
+3. Reset/migration performed multiple EEPROM commits (`src/settings.cpp`).
 
-## Current Working Tree
-- Modified:
-  - `README.md`
-  - `custom_usb_descriptors/USB.cpp`
-  - `platformio.ini`
-  - `src/cli.cpp`
-  - `src/duckparser.h`
-  - `src/duckparser.cpp`
-  - `src/locale/locale_types.h`
-  - `src/locales.h`
-  - `src/settings.cpp`
-  - `src/spiffs.cpp`
-  - `src/webserver.cpp`
-  - `test/test_parser_locale/test_main.cpp`
-  - `web/credits.html`
-  - `web/index.html`
-- Untracked:
-  - `SuperWiFiDuck.code-workspace`
-  - `src/locale/locale_tr.h`
-  - `status.md`
-  - `todo.md`
+## Implemented Mitigations
+### A1. Secret masking by default
+- `settings::toString(bool includeSecrets = false)` added (`src/settings.h`, `src/settings.cpp`).
+- Default `settings` output now masks `password` and `sta_password` as `********` (or `-` if empty).
+- New CLI command `settings_secrets` returns unmasked values on explicit request (`src/cli.cpp`).
+- Settings GUI now has reveal/hide flow:
+  - `Reveal passwords` action fetches `settings_secrets` once.
+  - Auto-remask after 20 seconds.
+  - Reveal state is runtime-only (`web/settings.html`, `web/settings.js`, `web/i18n.js`).
 
-## Locale Status
-- Turkish locale file exists: `src/locale/locale_tr.h`.
-- Integrated into runtime locale selection:
-  - Include added in `src/locales.h`
-  - `LOCALE TR` branch added in `src/duckparser.cpp`
-  - Listed in web UI locale help (`web/index.html`)
-  - Listed in README keyboard layout section
+### A2. Log hardening
+- AP startup log no longer prints AP password (`src/webserver.cpp`).
 
-## Issues Fixed In This Pass
-- Removed `#include <dummy.h>` from `src/cli.cpp`.
-- Hardened websocket message handling in `src/webserver.cpp` by copying frame payload to owned null-terminated memory before parsing.
-- Changed SPIFFS semantics in `src/spiffs.cpp`:
-  - `open()` now uses read mode (`"r"`)
-  - write paths explicitly use append mode (`"a+"`)
-  - removed unnecessary pre-open in `remove()`
-- Updated README references for ESP32 usage and flash links.
-- Added safer handling for missing `LOCALE` argument in `src/duckparser.cpp`.
-- Fixed Turkish locale compile errors in `src/locale/locale_tr.h`:
-  - replaced unsupported `KEY_NONUS_BACKSLASH` usages with `KEY_102ND`
-  - aligned `hid_locale_t` initialization pointer types with explicit casts
-- Removed dead/noisy code and warnings:
-  - replaced deprecated `beginResponse_P` with `beginResponse` in `src/webserver.cpp`
-  - removed redundant `if (true)` branch in `src/cli.cpp` `status` command
-  - removed unused local variable in `src/cli.cpp` stream read path
-  - removed noisy SPIFFS write logs in `src/spiffs.cpp`
-  - resolved S3 `USB_PID` macro redefinition warnings by switching to `USB_CUSTOM_PID`
-    in `platformio.ini` and `custom_usb_descriptors/USB.cpp`
-- Performed full code scan pass and completed all items from `todo.md`:
-  - fixed OTA typo in `src/webserver.cpp` (`Recieve` -> `Receive`)
-  - removed dead `repeatNum/getRepeats` path in duck parser (`src/duckparser.h`, `src/duckparser.cpp`)
-  - corrected settings constant spelling to `SETTINGS_ADDRESS` in `src/settings.cpp`
-  - changed SPIFFS startup success/failure logs from error level to debug text in `src/spiffs.cpp`
-  - corrected README typos/inaccuracies:
-    - `Expressif` -> `Espressif`
-    - `platform.ini` -> `platformio.ini`
-    - updated old core reference to ESP32 core
-  - aligned web credits core reference with ESP32 (`web/credits.html`)
-- Implemented AP+STA feature set end-to-end:
-  - extended persistent settings with `sta_ssid`, `sta_password`, `sta_autoconnect` (`src/settings.cpp`, `src/settings.h`)
-  - added settings migration path from legacy struct to new struct (`src/settings.cpp`)
-  - added runtime STA controls/info API: `staConnect()`, `staDisconnect()`, `wifiInfo()` (`src/webserver.h`, `src/webserver.cpp`)
-  - switched WiFi startup to `WIFI_AP_STA` and added non-blocking reconnect loop with 10s backoff (`src/webserver.cpp`)
-  - enabled mDNS startup/retry and exposed endpoint info (`src/webserver.cpp`)
-  - added CLI commands: `wifi`, `sta_connect`, `sta_disconnect` (`src/cli.cpp`)
-  - updated Settings web UI with STA controls/status (`web/settings.html`, `web/settings.js`)
-  - added EN/TR translations for STA GUI strings (`web/i18n.js`)
-  - regenerated embedded web assets (`src/webfiles.h`) via `python webconverter.py`
-  - updated README usage with AP+STA LAN access note (`README.md`)
+### A3. STA password policy hardening
+- STA password is now valid only when:
+  - empty string (open network), or
+  - length `8..64`.
+- `1..7` is rejected in firmware and UI (`src/settings.cpp`, `web/settings.js`, `web/i18n.js`).
+
+### A4. Accurate `set` result behavior
+- Settings setters and dispatcher now return `bool` success:
+  - `set`, `setSSID`, `setPassword`, `setChannel`, `setAutorun`, `setStaSSID`, `setStaPassword`, `setStaAutoconnect`.
+- CLI `set` now prints:
+  - success only on valid write,
+  - `ERROR: invalid value or setting name` on failure.
+- CLI output masks secret values in success echo (`src/settings.h`, `src/settings.cpp`, `src/cli.cpp`).
+
+### A5. EEPROM durability improvements
+- Added internal setter flow with `persist` control.
+- `reset()` and legacy migration now batch in memory and commit once.
+- `load()` only calls `save()` when correction is required (`src/settings.cpp`).
+
+## New Features Added
+### B1. Expanded WiFi telemetry
+`wifi` output now includes:
+- `ap_ip`
+- `ap_ssid`
+- `sta_ssid`
+- `sta_status`
+- `sta_ip`
+- `sta_autoconnect`
+- `sta_rssi`
+- `sta_uptime_s`
+- `sta_last_disconnect_reason`
+- `mdns`
+
+Implementation details:
+- STA connect uptime tracking
+- STA disconnect reason tracking via WiFi events
+- RSSI and uptime reporting (`src/webserver.cpp`, `src/webserver.h`, `src/cli.cpp`).
+
+### B2. Index network dashboard (live)
+- Added Network Dashboard block to Index Status section (`web/index.html`).
+- Added 2-second polling of `wifi` telemetry and safe key=value parsing (`web/index.js`).
+- Dashboard shows AP IP, STA status/IP, RSSI, uptime, mDNS, and last disconnect reason.
+- Added EN/TR i18n labels and status translations (`web/i18n.js`).
+
+## Files Updated In This Pass
+- `src/settings.h`
+- `src/settings.cpp`
+- `src/cli.cpp`
+- `src/webserver.cpp`
+- `web/settings.html`
+- `web/settings.js`
+- `web/index.html`
+- `web/index.js`
+- `web/i18n.js`
+- `src/webfiles.h` (regenerated)
+
+## Verification Matrix
+| Command | Result |
+|---|---|
+| `python webconverter.py` | PASS |
+| `C:\Users\lenovo\.platformio\penv\Scripts\pio.exe run -e esp32-s2-kaluga-1` | PASS |
+| `C:\Users\lenovo\.platformio\penv\Scripts\pio.exe run -e esp32-s3-devkitc-1` | PASS |
+| `C:\Users\lenovo\.platformio\penv\Scripts\pio.exe test --without-uploading --without-testing` | PASS (`esp32-s2-test`, `esp32-s3-test`) |
+
+## On-Device Validation Status
+- Not executed in this pass.
+- Existing external blocker remains: serial/COM lock can prevent upload/runtime tests (`PermissionError(13) / access denied`).
 
 ## Remaining Items
-1. Run on-device tests once target board/serial port is available (current `pio test` upload step fails with `Error 2` on both test envs).
-
-## Notes
-- PlatformIO CLI is available via `C:\Users\lenovo\.platformio\penv\Scripts\pio.exe`.
-- Verified builds:
-  - `pio run -e esp32-s2-kaluga-1`: SUCCESS
-  - `pio run -e esp32-s3-devkitc-1`: SUCCESS
-- Full rebuild pass after TODO execution:
-  - `pio run -e esp32-s2-kaluga-1`: SUCCESS
-  - `pio run -e esp32-s3-devkitc-1`: SUCCESS
-- Remaining-items pass (this turn):
-  - Added real test suite: `test/test_parser_locale/test_main.cpp`
-  - Added dedicated test environment: `env:esp32-s2-test` in `platformio.ini`
-  - Added dedicated test environment: `env:esp32-s3-test` in `platformio.ini`
-  - `pio test -e esp32-s2-test --without-uploading --without-testing`: PASSED (test firmware build successful)
-  - `pio test -e esp32-s3-test --without-uploading --without-testing`: PASSED (test firmware build successful)
-  - `pio test -e esp32-s2-test`: upload failed (`*** [upload] Error 2`)
-  - `pio test -e esp32-s3-test`: upload failed (`*** [upload] Error 2`)
-  - Verified API cleanup safety: no remaining `getRepeats()` references in codebase
-  - Reviewed `src/locale/locale_types.h`: added `<stdint.h>` and `<stddef.h>` includes are valid and consistent with type usage
-- Runtime/flash-on-device tests were not executed in this review.
-- Latest verification pass (2026-02-22, AP+STA implementation):
-  - `python webconverter.py`: SUCCESS (web assets regenerated)
-  - `pio run -e esp32-s2-kaluga-1`: SUCCESS
-  - `pio run -e esp32-s3-devkitc-1`: SUCCESS
-  - `pio test --without-uploading --without-testing`: PASSED (`esp32-s2-test`, `esp32-s3-test`)
+1. Run on-device acceptance checks when COM port is free:
+   - `settings` masked by default
+   - `settings_secrets` explicit reveal behavior
+   - settings page reveal auto-remask after 20s
+   - network dashboard live refresh and STA telemetry transitions
+2. Optional hardening follow-up: restrict `settings_secrets` behind optional unlock/auth model.

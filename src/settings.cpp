@@ -5,11 +5,11 @@
 
 #include "settings.h"
 
-#include "spiffs.h"
 #include "debug.h"
 #include "config.h"
 #include "eeprom0.h"
 #include <ctype.h>
+#include <cstring>
 
 #define SETTINGS_ADDRESS 1
 #define SETTINGS_MAGIC_NUM_LEGACY 1234567891
@@ -19,7 +19,6 @@ namespace settings {
     // ===== PRIVATE ===== //
     typedef struct legacy_settings_t {
         uint32_t magic_num;
-
         char ssid[33];
         char password[65];
         char channel[5];
@@ -28,7 +27,6 @@ namespace settings {
 
     typedef struct settings_t {
         uint32_t magic_num;
-
         char ssid[33];
         char password[65];
         char channel[5];
@@ -40,6 +38,12 @@ namespace settings {
 
     settings_t data;
 
+    size_t safeStrLen(const char* str, size_t maxLen) {
+        size_t len = 0;
+        while ((len <= maxLen) && (str[len] != '\0')) ++len;
+        return len;
+    }
+
     bool equalsIgnoreCase(const char* a, const char* b) {
         if (!a || !b) return false;
         while (*a && *b) {
@@ -48,6 +52,153 @@ namespace settings {
             ++b;
         }
         return *a == '\0' && *b == '\0';
+    }
+
+    bool isDigitsOnly(const char* str) {
+        if (!str || *str == '\0') return false;
+        while (*str) {
+            if (!isdigit((unsigned char)*str)) return false;
+            ++str;
+        }
+        return true;
+    }
+
+    bool isValidChannelValue(const char* channel) {
+        if (!channel) return false;
+        if (strcmp(channel, "auto") == 0) return true;
+        if (!isDigitsOnly(channel)) return false;
+
+        int ch = atoi(channel);
+        return (ch >= 1) && (ch <= 13);
+    }
+
+    bool setSSIDInternal(const char* ssid, bool persist) {
+        if (!ssid) return false;
+        size_t len = strlen(ssid);
+        if ((len < 1) || (len > 32)) return false;
+
+        memset(data.ssid, 0, sizeof(data.ssid));
+        strncpy(data.ssid, ssid, sizeof(data.ssid) - 1);
+        if (persist) save();
+        return true;
+    }
+
+    bool setPasswordInternal(const char* password, bool persist) {
+        if (!password) return false;
+        size_t len = strlen(password);
+        if ((len < 8) || (len > 64)) return false;
+
+        memset(data.password, 0, sizeof(data.password));
+        strncpy(data.password, password, sizeof(data.password) - 1);
+        if (persist) save();
+        return true;
+    }
+
+    bool setChannelInternal(const char* channel, bool persist) {
+        if (!isValidChannelValue(channel)) return false;
+
+        memset(data.channel, 0, sizeof(data.channel));
+        strncpy(data.channel, channel, sizeof(data.channel) - 1);
+        if (persist) save();
+        return true;
+    }
+
+    bool setAutorunInternal(const char* autorun, bool persist) {
+        if (!autorun) return false;
+        if (strlen(autorun) > 64) return false;
+
+        memset(data.autorun, 0, sizeof(data.autorun));
+        strncpy(data.autorun, autorun, sizeof(data.autorun) - 1);
+        if (persist) save();
+        return true;
+    }
+
+    bool setStaSSIDInternal(const char* ssid, bool persist) {
+        if (!ssid) return false;
+        if (strlen(ssid) > 32) return false;
+
+        memset(data.sta_ssid, 0, sizeof(data.sta_ssid));
+        strncpy(data.sta_ssid, ssid, sizeof(data.sta_ssid) - 1);
+        if (persist) save();
+        return true;
+    }
+
+    bool setStaPasswordInternal(const char* password, bool persist) {
+        if (!password) return false;
+        size_t len = strlen(password);
+        if (!((len == 0) || ((len >= 8) && (len <= 64)))) return false;
+
+        memset(data.sta_password, 0, sizeof(data.sta_password));
+        strncpy(data.sta_password, password, sizeof(data.sta_password) - 1);
+        if (persist) save();
+        return true;
+    }
+
+    bool setStaAutoconnectInternal(bool autoconnect, bool persist) {
+        data.sta_autoconnect = autoconnect ? 1 : 0;
+        if (persist) save();
+        return true;
+    }
+
+    bool parseBoolValue(const char* value, bool* result) {
+        if (!value || !result) return false;
+
+        if ((strcmp(value, "1") == 0) ||
+            equalsIgnoreCase(value, "on") ||
+            equalsIgnoreCase(value, "true")) {
+            *result = true;
+            return true;
+        }
+
+        if ((strcmp(value, "0") == 0) ||
+            equalsIgnoreCase(value, "off") ||
+            equalsIgnoreCase(value, "false")) {
+            *result = false;
+            return true;
+        }
+
+        return false;
+    }
+
+    bool isStoredAPSSIDValid() {
+        size_t len = safeStrLen(data.ssid, 32);
+        return (len >= 1) && (len <= 32);
+    }
+
+    bool isStoredAPPasswordValid() {
+        size_t len = safeStrLen(data.password, 64);
+        return (len >= 8) && (len <= 64);
+    }
+
+    bool isStoredChannelValid() {
+        size_t len = safeStrLen(data.channel, 4);
+        if ((len == 0) || (len > 4)) return false;
+        return isValidChannelValue(data.channel);
+    }
+
+    bool isStoredAutorunValid() {
+        size_t len = safeStrLen(data.autorun, 64);
+        return len <= 64;
+    }
+
+    bool isStoredStaSSIDValid() {
+        size_t len = safeStrLen(data.sta_ssid, 32);
+        return len <= 32;
+    }
+
+    bool isStoredStaPasswordValid() {
+        size_t len = safeStrLen(data.sta_password, 64);
+        return (len == 0) || ((len >= 8) && (len <= 64));
+    }
+
+    bool isStoredStaAutoconnectValid() {
+        return data.sta_autoconnect <= 1;
+    }
+
+    String maskSecret(const char* value, bool includeSecrets) {
+        if (!value || strlen(value) == 0) return "-";
+        if (includeSecrets) return String(value);
+        return "********";
     }
 
     void migrateLegacySettings() {
@@ -63,21 +214,14 @@ namespace settings {
         memset(&data, 0, sizeof(data));
         data.magic_num = SETTINGS_MAGIC_NUM;
 
-        if ((oldData.ssid[32] == 0) && (strlen(oldData.ssid) > 0)) setSSID(oldData.ssid);
-        else setSSID(WIFI_SSID);
-
-        if ((oldData.password[64] == 0) && (strlen(oldData.password) >= 8)) setPassword(oldData.password);
-        else setPassword(WIFI_PASSWORD);
-
-        if ((oldData.channel[4] == 0) && ((strcmp(oldData.channel, "auto") == 0) || ((atoi(oldData.channel) >= 1) && (atoi(oldData.channel) <= 13)))) setChannel(oldData.channel);
-        else setChannel(WIFI_CHANNEL);
-
-        if (oldData.autorun[64] == 0) setAutorun(oldData.autorun);
-        else setAutorun("");
-
-        setStaSSID("");
-        setStaPassword("");
-        setStaAutoconnectBool(false);
+        if (!(setSSIDInternal(oldData.ssid, false))) setSSIDInternal(WIFI_SSID, false);
+        if (!(setPasswordInternal(oldData.password, false))) setPasswordInternal(WIFI_PASSWORD, false);
+        if (!(setChannelInternal(oldData.channel, false))) setChannelInternal(WIFI_CHANNEL, false);
+        if (!(setAutorunInternal(oldData.autorun, false))) setAutorunInternal("", false);
+        setStaSSIDInternal("", false);
+        setStaPasswordInternal("", false);
+        setStaAutoconnectInternal(false, false);
+        save();
     }
 
     // ===== PUBLIC ====== //
@@ -88,34 +232,44 @@ namespace settings {
 
     void load() {
         eeprom::getObject(SETTINGS_ADDRESS, data);
+
         if (data.magic_num == SETTINGS_MAGIC_NUM_LEGACY) {
             migrateLegacySettings();
             return;
         }
+
         if (data.magic_num != SETTINGS_MAGIC_NUM) {
             reset();
             return;
         }
 
-        if (data.ssid[32] != 0) setSSID(WIFI_SSID);
-        if (data.password[64] != 0) setPassword(WIFI_PASSWORD);
-        if (data.channel[4] != 0) setChannel(WIFI_CHANNEL);
-        if (data.autorun[64] != 0) setAutorun("");
-        if (data.sta_ssid[32] != 0) setStaSSID("");
-        if (data.sta_password[64] != 0) setStaPassword("");
-        if (data.sta_autoconnect > 1) setStaAutoconnectBool(false);
+        bool changed = false;
+
+        if (!isStoredAPSSIDValid()) changed |= setSSIDInternal(WIFI_SSID, false);
+        if (!isStoredAPPasswordValid()) changed |= setPasswordInternal(WIFI_PASSWORD, false);
+        if (!isStoredChannelValid()) changed |= setChannelInternal(WIFI_CHANNEL, false);
+        if (!isStoredAutorunValid()) changed |= setAutorunInternal("", false);
+        if (!isStoredStaSSIDValid()) changed |= setStaSSIDInternal("", false);
+        if (!isStoredStaPasswordValid()) changed |= setStaPasswordInternal("", false);
+        if (!isStoredStaAutoconnectValid()) changed |= setStaAutoconnectInternal(false, false);
+
+        if (changed) save();
     }
 
     void reset() {
         debugln("Resetting Settings");
+
+        memset(&data, 0, sizeof(data));
         data.magic_num = SETTINGS_MAGIC_NUM;
-        setSSID(WIFI_SSID);
-        setPassword(WIFI_PASSWORD);
-        setChannel(WIFI_CHANNEL);
-        setAutorun("");
-        setStaSSID("");
-        setStaPassword("");
-        setStaAutoconnectBool(false);
+
+        setSSIDInternal(WIFI_SSID, false);
+        setPasswordInternal(WIFI_PASSWORD, false);
+        setChannelInternal(WIFI_CHANNEL, false);
+        setAutorunInternal("", false);
+        setStaSSIDInternal("", false);
+        setStaPasswordInternal("", false);
+        setStaAutoconnectInternal(false, false);
+        save();
     }
 
     void save() {
@@ -123,14 +277,15 @@ namespace settings {
         eeprom::saveObject(SETTINGS_ADDRESS, data);
     }
 
-    String toString() {
+    String toString(bool includeSecrets) {
         String s;
+        s.reserve(256);
 
         s += "ssid=";
         s += getSSID();
         s += "\n";
         s += "password=";
-        s += getPassword();
+        s += maskSecret(getPassword(), includeSecrets);
         s += "\n";
         s += "channel=";
         s += getChannel();
@@ -142,7 +297,7 @@ namespace settings {
         s += getStaSSID();
         s += "\n";
         s += "sta_password=";
-        s += getStaPassword();
+        s += maskSecret(getStaPassword(), includeSecrets);
         s += "\n";
         s += "sta_autoconnect=";
         s += getStaAutoconnect() ? "1" : "0";
@@ -184,94 +339,50 @@ namespace settings {
         return data.sta_autoconnect == 1;
     }
 
-    void set(const char* name, const char* value) {
-        if (strcmp(name, "ssid") == 0) {
-            setSSID(value);
-        } else if (strcmp(name, "password") == 0) {
-            setPassword(value);
-        } else if (strcmp(name, "channel") == 0) {
-            setChannel(value);
-        } else if (strcmp(name, "autorun") == 0) {
-            setAutorun(value);
-        } else if (strcmp(name, "sta_ssid") == 0) {
-            setStaSSID(value);
-        } else if (strcmp(name, "sta_password") == 0) {
-            setStaPassword(value);
-        } else if (strcmp(name, "sta_autoconnect") == 0) {
-            setStaAutoconnect(value);
-        }
+    bool set(const char* name, const char* value) {
+        if (!name || !value) return false;
+
+        if (strcmp(name, "ssid") == 0) return setSSID(value);
+        if (strcmp(name, "password") == 0) return setPassword(value);
+        if (strcmp(name, "channel") == 0) return setChannel(value);
+        if (strcmp(name, "autorun") == 0) return setAutorun(value);
+        if (strcmp(name, "sta_ssid") == 0) return setStaSSID(value);
+        if (strcmp(name, "sta_password") == 0) return setStaPassword(value);
+        if (strcmp(name, "sta_autoconnect") == 0) return setStaAutoconnect(value);
+        return false;
     }
 
-    void setSSID(const char* ssid) {
-        if (ssid && (strlen(ssid) <= 32)) {
-            memset(data.ssid, 0, 33);
-            strncpy(data.ssid, ssid, 32);
-
-            save();
-        }
+    bool setSSID(const char* ssid) {
+        return setSSIDInternal(ssid, true);
     }
 
-    void setPassword(const char* password) {
-        if (password && (strlen(password) >= 8) && (strlen(password) <= 64)) {
-            memset(data.password, 0, 65);
-            strncpy(data.password, password, 64);
-
-            save();
-        }
+    bool setPassword(const char* password) {
+        return setPasswordInternal(password, true);
     }
 
-    void setChannel(const char* channel) {
-        if (channel && ((strcmp(channel, "auto") == 0) || ((atoi(channel) >= 1) && (atoi(channel) <= 13)))) {
-            memset(data.channel, 0, 5);
-            strncpy(data.channel, channel, 4);
-
-            save();
-        }
+    bool setChannel(const char* channel) {
+        return setChannelInternal(channel, true);
     }
 
-    void setAutorun(const char* autorun) {
-        if (autorun && (strlen(autorun) <= 64)) {
-            memset(data.autorun, 0, 65);
-            strncpy(data.autorun, autorun, 64);
-
-            save();
-        }
+    bool setAutorun(const char* autorun) {
+        return setAutorunInternal(autorun, true);
     }
 
-    void setStaSSID(const char* ssid) {
-        if (ssid && (strlen(ssid) <= 32)) {
-            memset(data.sta_ssid, 0, 33);
-            strncpy(data.sta_ssid, ssid, 32);
-
-            save();
-        }
+    bool setStaSSID(const char* ssid) {
+        return setStaSSIDInternal(ssid, true);
     }
 
-    void setStaPassword(const char* password) {
-        if (password && (strlen(password) <= 64)) {
-            memset(data.sta_password, 0, 65);
-            strncpy(data.sta_password, password, 64);
-
-            save();
-        }
+    bool setStaPassword(const char* password) {
+        return setStaPasswordInternal(password, true);
     }
 
-    void setStaAutoconnect(const char* autoconnect) {
-        if (!autoconnect) return;
-
-        if ((strcmp(autoconnect, "1") == 0) ||
-            equalsIgnoreCase(autoconnect, "on") ||
-            equalsIgnoreCase(autoconnect, "true")) {
-            setStaAutoconnectBool(true);
-        } else if ((strcmp(autoconnect, "0") == 0) ||
-                   equalsIgnoreCase(autoconnect, "off") ||
-                   equalsIgnoreCase(autoconnect, "false")) {
-            setStaAutoconnectBool(false);
-        }
+    bool setStaAutoconnect(const char* autoconnect) {
+        bool parsed = false;
+        if (!parseBoolValue(autoconnect, &parsed)) return false;
+        return setStaAutoconnectInternal(parsed, true);
     }
 
     void setStaAutoconnectBool(bool autoconnect) {
-        data.sta_autoconnect = autoconnect ? 1 : 0;
-        save();
+        setStaAutoconnectInternal(autoconnect, true);
     }
 }

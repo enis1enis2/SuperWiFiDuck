@@ -1,52 +1,33 @@
 # TODO
 
-## Completed In This Pass
-- [x] Add Turkish GUI support for Web UI pages with runtime language switcher (`EN`/`TR`) via new `web/i18n.js`.
-- [x] Localize key UI labels, status text, prompts and actions in:
-  - [x] `web/index.html`, `web/index.js`
-  - [x] `web/settings.html`, `web/settings.js`
-  - [x] `web/terminal.html`, `web/terminal.js`
-  - [x] `web/error404.html`, `web/credits.html`
-- [x] Change Web UI footer copyright to `Enis Polat`.
-- [x] Add dynamic WebSocket endpoint resolution in `web/script.js` (uses current host, fallback to `192.168.4.1`).
-- [x] Add script list filter to the Web UI (`web/index.html`, `web/index.js`).
-- [x] Add terminal command history + Enter/Arrow key UX (`web/terminal.js`).
-- [x] Add new CLI `health` command in `src/cli.cpp` (uptime, heap, SPIFFS usage, script state).
-- [x] Fix `webconverter.py` output path bug (`src/webfiles.h`) and regenerate embedded assets.
-- [x] Rebuild firmware after updates:
-  - [x] `pio run -e esp32-s2-kaluga-1` success
-  - [x] `pio run -e esp32-s3-devkitc-1` success
-- [x] Re-run test firmware build:
-  - [x] `pio test --without-uploading --without-testing` success
-- [x] Final verification refresh:
-  - [x] `pio run -e esp32-s2-kaluga-1` success
-  - [x] `pio run -e esp32-s3-devkitc-1` success
-  - [x] `pio test --without-uploading --without-testing` success
-- [x] Implement AP+STA dual WiFi runtime (`src/webserver.cpp`, `src/webserver.h`):
-  - [x] AP remains active at `192.168.4.1`
-  - [x] STA autoconnect on boot when configured
-  - [x] Periodic non-blocking STA reconnect strategy
-  - [x] Runtime `wifiInfo()` output (AP IP, STA status/IP, mDNS endpoint)
-- [x] Extend persistent settings with STA fields (`src/settings.cpp`, `src/settings.h`):
-  - [x] `sta_ssid`, `sta_password`, `sta_autoconnect`
-  - [x] legacy settings migration path and defaults
-- [x] Add CLI controls (`src/cli.cpp`):
-  - [x] `wifi`
-  - [x] `sta_connect`
-  - [x] `sta_disconnect`
-- [x] Add STA controls to web settings UI:
-  - [x] `web/settings.html`
-  - [x] `web/settings.js` (key/value parser + actions)
-  - [x] `web/i18n.js` (EN/TR STA labels/prompts/status text)
-- [x] Regenerate embedded web assets:
-  - [x] `python webconverter.py`
-  - [x] `src/webfiles.h` updated
-- [x] Update docs:
-  - [x] `README.md` AP+STA usage note added
-- [x] Verification after AP+STA implementation:
-  - [x] `pio run -e esp32-s2-kaluga-1` success
-  - [x] `pio run -e esp32-s3-devkitc-1` success
-  - [x] `pio test --without-uploading --without-testing` success
+## Security Hardening
+- [x] Mask secrets in default settings output (`settings` command + Settings GUI).
+- [x] Add explicit secret reveal command (`settings_secrets`).
+- [x] Add GUI reveal/hide password control with 20s auto-remask.
+- [x] Remove AP password from startup logs.
+- [x] Enforce STA password policy: empty or 8-64 characters.
+- [x] Make CLI `set` report validation failures correctly.
 
-## Remaining External Blocker
-- [ ] On-device test upload still blocked by serial port lock on `COM5` (`PermissionError(13)`).
+## Reliability and Durability
+- [x] Convert settings setters/dispatcher to `bool` success API.
+- [x] Batch EEPROM writes in migration/reset paths.
+- [x] Save corrected settings only when needed during load.
+
+## Network Dashboard Feature
+- [x] Extend `wifi` telemetry with RSSI, uptime, last disconnect reason.
+- [x] Add Index network dashboard UI block.
+- [x] Add 2-second polling and runtime rendering in `web/index.js`.
+- [x] Add EN/TR translation keys for network dashboard and reveal controls.
+
+## Build and Packaging
+- [x] Regenerate embedded web assets (`python webconverter.py`).
+- [x] Rebuild firmware for S2 (`esp32-s2-kaluga-1`).
+- [x] Rebuild firmware for S3 (`esp32-s3-devkitc-1`).
+- [x] Run test firmware build (`pio test --without-uploading --without-testing`).
+
+## External Blockers
+- [ ] Run full on-device acceptance tests (blocked when COM port is locked/busy).
+
+## Optional Next Improvements
+- [ ] Add optional auth/unlock gate for `settings_secrets` command.
+- [ ] Add STA scan/list feature in GUI (SSID discovery) without changing AP-first behavior.

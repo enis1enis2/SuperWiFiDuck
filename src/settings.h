@@ -14,7 +14,7 @@ namespace settings {
     void reset();
     void save();
 
-    String toString();
+    String toString(bool includeSecrets = false);
 
     const char* getSSID();
     const char* getPassword();
@@ -26,14 +26,14 @@ namespace settings {
 
     int getChannelNum();
 
-    void set(const char* name, const char* value);
+    bool set(const char* name, const char* value);
 
-    void setSSID(const char* ssid);
-    void setPassword(const char* password);
-    void setChannel(const char* channel);
-    void setAutorun(const char* autorun);
-    void setStaSSID(const char* ssid);
-    void setStaPassword(const char* password);
-    void setStaAutoconnect(const char* autoconnect);
+    bool setSSID(const char* ssid);
+    bool setPassword(const char* password);
+    bool setChannel(const char* channel);
+    bool setAutorun(const char* autorun);
+    bool setStaSSID(const char* ssid);
+    bool setStaPassword(const char* password);
+    bool setStaAutoconnect(const char* autoconnect);
     void setStaAutoconnectBool(bool autoconnect);
 }

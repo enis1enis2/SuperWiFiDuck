@@ -134,6 +134,16 @@ namespace cli {
         });
 
         /**
+         * \brief Create settings_secrets command
+         *
+         * Prints settings with raw (unmasked) secret fields.
+         */
+        cli.addCommand("settings_secrets", [](cmd* c) {
+            settings::load();
+            print(settings::toString(true));
+        });
+
+        /**
          * \brief Create wifi command
          *
          * Prints AP/STA runtime network info.
@@ -180,11 +190,16 @@ namespace cli {
                 String name { argName.getValue() };
                 String value { argValue.getValue() };
 
-                settings::set(name.c_str(), value.c_str());
+                bool ok = settings::set(name.c_str(), value.c_str());
+                if (ok) {
+                    String shownValue = value;
+                    if ((name == "password") || (name == "sta_password")) shownValue = "********";
 
-                String response = "> set \"" + name + "\" to \"" + value + "\"";
-
-                print(response);
+                    String response = "> set \"" + name + "\" to \"" + shownValue + "\"";
+                    print(response);
+                } else {
+                    print("ERROR: invalid value or setting name");
+                }
             })
         };
         cmdSet.addPosArg("n/ame");
