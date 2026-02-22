@@ -290,7 +290,7 @@ line_list* parse_lines1(const char* str, size_t len) {
     for (stri = 0; stri <= len; ++stri) {
         char prev = stri > 0 ? str[stri-1] : 0;
         char curr = str[stri];
-        char next = str[stri+1];
+        char next = (stri + 1 <= len) ? str[stri+1] : 0;
 
         escaped = prev == '\\';
 

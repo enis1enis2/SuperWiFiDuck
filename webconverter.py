@@ -21,7 +21,8 @@ def get_varname(filename):
     return filename.replace(".","_").lower()
 
 def get_file_type(filename):
-    file_ending = filename.split('.')[1]
+    parts = filename.rsplit('.', 1)
+    file_ending = parts[1] if len(parts) == 2 else ""
     if file_ending == "js":
         return "application/javascript"
     elif file_ending == "css":

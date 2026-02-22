@@ -71,14 +71,15 @@ namespace duckscript {
             bool eol = false; // End of line
 
             // Read a line into the buffer
-            while (f.available() && !eol && buf_i < BUFFER_SIZE) {
+            while (f.available() && !eol && buf_i < BUFFER_SIZE - 1) {
                 uint8_t b = f.peek();
                 eol = (b == '\n');
                 buf[buf_i] = f.read();
                 ++buf_i;
             }
+            buf[buf_i] = '\0'; // always null-terminate
 
-            if (!eol) debugln();
+            if (!eol) debugln("WARNING: line truncated at BUFFER_SIZE");
 
             if (strncmp((char*)buf, "REPEAT", _min(buf_i, 6)) == 0 || strncmp((char*)buf, "REPLAY", _min(buf_i, 6)) == 0) {
                 // Extract repeat count if available
@@ -112,6 +113,11 @@ namespace duckscript {
         if (running) {
             if (f) f.close();
             running = false;
+            if (prevMessage) {
+                free(prevMessage);
+                prevMessage = NULL;
+                prevMessageLen = 0;
+            }
             debugln("Stopped script");
         }
     }

@@ -4,10 +4,6 @@
 
 namespace eeprom {
     void begin();
-    void end();
-
-    bool checkBootNum();
-    void resetBootNum();
 
     template<typename T>
     void saveObject(const int address, const T& t) {

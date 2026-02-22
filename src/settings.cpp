@@ -67,7 +67,7 @@ namespace settings {
 
     size_t safeStrLen(const char* str, size_t maxLen) {
         size_t len = 0;
-        while ((len <= maxLen) && (str[len] != '\0')) ++len;
+        while ((len < maxLen) && (str[len] != '\0')) ++len;
         return len;
     }
 

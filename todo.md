@@ -40,3 +40,21 @@
 ## Optional Next Steps
 - [ ] Add optional pairing/security controls for BLE mode (PIN/passkey policy).
 - [ ] Add GUI hint for current BLE host name if available from stack callbacks.
+
+## Completed: Code Audit & Bug Fixes (2026-02-22)
+- [x] Fix file handle leak in `spiffs::size(String)` — file was never closed.
+- [x] Fix null-dereference in `spiffs::create()` — `.close()` called on invalid File.
+- [x] Fix out-of-bounds read in `parser.c:parse_lines1` — `str[stri+1]` read past buffer end.
+- [x] Fix `strtok` on non-null-terminated buffer in `duckscript::nextLine()` REPEAT branch.
+- [x] Fix `prevMessage` not reset between script runs in `duckscript::stopAll()`.
+- [x] Remove dead declarations `runTest()` and `repeat()` from `duckscript.h`.
+- [x] Remove dead functions `checkBootNum()`, `resetBootNum()`, `end()` from `eeprom.cpp`/`eeprom0.h`.
+- [x] Remove dead function `streamReadUntil()` from `spiffs.cpp`/`spiffs.h`.
+- [x] Remove unused field `bleInitialized` from `keyboard.h`/`keyboard.cpp`.
+- [x] Fix `#include <Arduino.h>` inside namespace body in `led.cpp`.
+- [x] Fix `safeStrLen` off-by-one (`<= maxLen` → `< maxLen`) in `settings.cpp`.
+- [x] Fix division-by-zero risk in memory display in `web/index.js`.
+- [x] Fix misleading `'\-'` escape in `fixFileName()` in `web/script.js`.
+- [x] Fix `IndexError` on extension-less files in `webconverter.py`.
+- [x] Remove `ESP_LOGI` production noise from `spiffs.cpp` (open/stream paths).
+- [x] Fix spurious blank `debugln()` on buffer overflow in `duckscript.cpp`.

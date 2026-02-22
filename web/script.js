@@ -31,7 +31,7 @@ function fixFileName(fileName) {
       fileName = '/' + fileName;
     }
 
-    fileName = fileName.replace(/ /g, '\-');
+    fileName = fileName.replace(/ /g, '-');
   }
   return fileName;
 }

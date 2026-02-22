@@ -1,5 +1,8 @@
 # Super WiFi Duck
 
+> **Code Audit Pass (2026-02-22):** 12 bugs fixed — see [`status.md`](status.md) for details.
+
+
 <p align="center">
 <img alt="WiFi Duck Logo" src="img/thumbnail.jpg" width="640">
 </p>

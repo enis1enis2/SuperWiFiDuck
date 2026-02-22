@@ -120,7 +120,6 @@ bool HIDKeyboard::setTransport(KeyboardOutputTransport mode) {
 
     if (!bleActive) {
         bleKeyboard->begin();
-        bleInitialized = true;
         bleActive = true;
         debugf("BLE keyboard advertising as %s\n", BLE_DEVICE_NAME);
     }

@@ -191,8 +191,9 @@ function update_file_list() {
     var used = lines[1].split(" ")[0];
     var free = lines[2].split(" ")[0];
 
-    var percent = Math.floor(byte / 100);
-    var freepercent = Math.floor(free / percent);
+    var totalNum = parseInt(byte, 10);
+    var freeNum  = parseInt(free, 10);
+    var freepercent = (totalNum > 0) ? Math.floor((freeNum / totalNum) * 100) : 0;
 
     if (getLanguage() === "tr") {
       E("freeMemory").innerHTML = used + " bayt kullanildi (%" + freepercent + " bos)";

@@ -46,7 +46,6 @@ private:
   USBHID hid;
   static hid_locale_t* locale;
   KeyboardOutputTransport transport = KeyboardOutputTransport::USB;
-  bool bleInitialized = false;
   bool bleActive = false;
   unsigned long lastBtDropLogMs = 0;
 #if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(CONFIG_BT_ENABLED)

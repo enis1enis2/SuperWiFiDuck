@@ -33,7 +33,6 @@ namespace spiffs {
     void streamOpen(String fileName);
     void streamWrite(const char* buf, size_t len);
     size_t streamRead(char* buf, size_t len);
-    size_t streamReadUntil(char* buf, char delimiter, size_t max_len);
     void streamClose();
     bool streaming();
     size_t streamAvailable();

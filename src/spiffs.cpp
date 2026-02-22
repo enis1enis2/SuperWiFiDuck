@@ -62,8 +62,10 @@ namespace spiffs {
         fixPath(fileName);
 
         File f = LittleFS.open(fileName, "r");
-
-        return f.size();
+        if (!f) return 0;
+        size_t s = f.size();
+        f.close();
+        return s;
     }
 
     bool exists(String fileName) {
@@ -72,8 +74,6 @@ namespace spiffs {
 
     File open(String fileName) {
         fixPath(fileName);
-
-        ESP_LOGI("", "File name %s", fileName.c_str());
 
         File f = LittleFS.open(fileName, "r");
 
@@ -86,8 +86,7 @@ namespace spiffs {
         fixPath(fileName);
 
         File f = LittleFS.open(fileName, "a+");
-
-        f.close();
+        if (f) f.close();
     }
 
     void remove(String fileName) {
@@ -160,7 +159,6 @@ namespace spiffs {
         streamFile = LittleFS.open(fileName, "a+");
         if (streamFile) streamFile.seek(0);
         if (!streamFile) debugln("ERROR: No stream file open");
-        else ESP_LOGI("", "File opened!");
     }
 
     void streamWrite(const char* buf, size_t len) {
@@ -178,30 +176,6 @@ namespace spiffs {
                     break;
                 } else {
                     buf[i] = streamFile.read();
-                }
-            }
-
-            ESP_LOGI("", "File buf %s", buf);
-
-            return i;
-        } else {
-            ESP_LOGI("", "ERROR: No stream file open");
-            return 0;
-        }
-    }
-
-    size_t streamReadUntil(char* buf, char delimiter, size_t max_len) {
-        if (streamFile) {
-            size_t i;
-            char   c = 'x';
-
-            for (i = 0; i<max_len; ++i) {
-                if ((c == delimiter) || !streamFile.available() || (i == max_len-1)) {
-                    buf[i] = '\0';
-                    break;
-                } else {
-                    c      = streamFile.read();
-                    buf[i] = c;
                 }
             }
 

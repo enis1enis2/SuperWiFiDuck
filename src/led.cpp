@@ -51,9 +51,9 @@ namespace led {
 
 #elif defined(LED_RGB)
 
+#include <Arduino.h>
+
 namespace led {
-    #include <Arduino.h>
-    
     void begin() {
         pinMode(LED_R, OUTPUT);
         pinMode(LED_G, OUTPUT);
