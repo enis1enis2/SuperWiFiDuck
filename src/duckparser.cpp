@@ -17,8 +17,9 @@ extern "C" {
  #include "parser.h" // parse_lines1
 }
 
-#define CASE_INSENSETIVE 0
-#define CASE_SENSETIVE 1
+// Use parser.h constants directly: COMPARE_CASE_INSENSETIVE, COMPARE_CASE_SENSETIVE
+#define CASE_INSENSETIVE COMPARE_CASE_INSENSETIVE
+#define CASE_SENSETIVE   COMPARE_CASE_SENSETIVE
 
 
 
@@ -75,9 +76,6 @@ namespace duckparser {
 
     void press(const char* str, size_t len) {
         // character
-
-        //
-        ESP_LOGI("","%s", str);
 
         if (len == 1) keyboard.press(str);
 
