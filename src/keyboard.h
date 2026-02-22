@@ -7,6 +7,8 @@
 
 // If you get an error here, you probably have selected the wrong board
 // under Tools > Board
+#include <Arduino.h>
+#include <sdkconfig.h>
 #include "USBHID.h"
 #include "locales.h"
 #include "Print.h"
@@ -33,12 +35,23 @@ typedef union {
     uint8_t leds;
 } arduino_usb_hid_keyboard_event_data_t;
 
+enum class KeyboardOutputTransport : uint8_t {
+  USB = 0,
+  BLUETOOTH = 1
+};
 
 
 class HIDKeyboard : public USBHIDDevice {
 private:
   USBHID hid;
   static hid_locale_t* locale;
+  KeyboardOutputTransport transport = KeyboardOutputTransport::USB;
+  bool bleInitialized = false;
+  bool bleActive = false;
+  unsigned long lastBtDropLogMs = 0;
+#if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(CONFIG_BT_ENABLED)
+  class BleKeyboard* bleKeyboard = nullptr;
+#endif
   
 
 public:
@@ -52,6 +65,13 @@ public:
 
   HIDKeyboard(void);
   void begin();
+
+  bool setTransport(KeyboardOutputTransport mode);
+  KeyboardOutputTransport getTransport() const;
+  bool isBluetoothSupported() const;
+  bool isBluetoothConnected() const;
+  const char* getBluetoothName() const;
+  String transportInfo() const;
 
   void setLocale(hid_locale_t* locale);
 

@@ -1,33 +1,42 @@
 # TODO
 
-## Security Hardening
-- [x] Mask secrets in default settings output (`settings` command + Settings GUI).
-- [x] Add explicit secret reveal command (`settings_secrets`).
-- [x] Add GUI reveal/hide password control with 20s auto-remask.
-- [x] Remove AP password from startup logs.
-- [x] Enforce STA password policy: empty or 8-64 characters.
-- [x] Make CLI `set` report validation failures correctly.
+## Completed: Kablo/Bluetooth HID Output Switch
+- [x] Add transport abstraction to keyboard layer (`USB` / `BLUETOOTH`).
+- [x] Add S3-only BLE HID keyboard backend with fixed name `BLSWD`.
+- [x] Keep single-channel output behavior (no dual send, no fallback send).
+- [x] Add runtime transport info output (`transport`, `ble_supported`, `ble_connected`, `ble_name`).
 
-## Reliability and Durability
-- [x] Convert settings setters/dispatcher to `bool` success API.
-- [x] Batch EEPROM writes in migration/reset paths.
-- [x] Save corrected settings only when needed during load.
+## Completed: Settings and Migration
+- [x] Add persistent setting key `input_transport`.
+- [x] Add alias parsing (`usb|cable|kablo|bluetooth|ble`).
+- [x] Add S2/S3 hardware validation for Bluetooth mode.
+- [x] Add settings migration for new schema (`magic=1234567893`).
+- [x] Include `input_transport` in `settings` output.
 
-## Network Dashboard Feature
-- [x] Extend `wifi` telemetry with RSSI, uptime, last disconnect reason.
-- [x] Add Index network dashboard UI block.
-- [x] Add 2-second polling and runtime rendering in `web/index.js`.
-- [x] Add EN/TR translation keys for network dashboard and reveal controls.
+## Completed: Runtime and CLI
+- [x] Add `duckparser::applyConfiguredTransport()` and `duckparser::inputInfo()`.
+- [x] Apply transport at startup and periodic runtime sync in `loop()`.
+- [x] Add CLI command `input`.
+- [x] Trigger transport apply after `set input_transport ...`.
 
-## Build and Packaging
+## Completed: GUI and i18n
+- [x] Add Input Mode section to Settings GUI.
+- [x] Add Kablo/Bluetooth toggle control.
+- [x] Add Bluetooth support/connection/name rows.
+- [x] Disable control on S2 and show unsupported warning.
+- [x] Add EN/TR translations for new labels and states.
+
+## Completed: Build and Packaging
+- [x] Add BLE keyboard dependency to S3 firmware env.
+- [x] Add BLE keyboard dependency to S3 test env.
 - [x] Regenerate embedded web assets (`python webconverter.py`).
-- [x] Rebuild firmware for S2 (`esp32-s2-kaluga-1`).
-- [x] Rebuild firmware for S3 (`esp32-s3-devkitc-1`).
+- [x] Rebuild S2 firmware (`esp32-s2-kaluga-1`).
+- [x] Rebuild S3 firmware (`esp32-s3-devkitc-1`).
 - [x] Run test firmware build (`pio test --without-uploading --without-testing`).
 
 ## External Blockers
-- [ ] Run full on-device acceptance tests (blocked when COM port is locked/busy).
+- [ ] Run on-device acceptance tests when COM port is available and free.
 
-## Optional Next Improvements
-- [ ] Add optional auth/unlock gate for `settings_secrets` command.
-- [ ] Add STA scan/list feature in GUI (SSID discovery) without changing AP-first behavior.
+## Optional Next Steps
+- [ ] Add optional pairing/security controls for BLE mode (PIN/passkey policy).
+- [ ] Add GUI hint for current BLE host name if available from stack callbacks.

@@ -10,6 +10,8 @@
 #include "debug.h"
 #include "keyboard.h"
 #include "led.h"
+#include "settings.h"
+#include <cstring>
 
 extern "C" {
  #include "parser.h" // parse_lines1
@@ -33,11 +35,39 @@ namespace duckparser {
     unsigned long sleepTime      = 0;
 
     HIDKeyboard keyboard;
+    KeyboardOutputTransport appliedTransport = KeyboardOutputTransport::USB;
 
 
     void beginKeyboard() {
       keyboard.begin();
     };
+
+    bool applyConfiguredTransport() {
+        const char* configured = settings::getInputTransport();
+        KeyboardOutputTransport target = KeyboardOutputTransport::USB;
+
+        if (configured && strcmp(configured, "bluetooth") == 0) {
+            target = KeyboardOutputTransport::BLUETOOTH;
+        }
+
+        if (target == appliedTransport) return true;
+
+        bool ok = keyboard.setTransport(target);
+        if (!ok) {
+            debugln("Failed to apply configured input transport, reverting to USB");
+            settings::setInputTransport("usb");
+            keyboard.setTransport(KeyboardOutputTransport::USB);
+            appliedTransport = KeyboardOutputTransport::USB;
+            return false;
+        }
+
+        appliedTransport = target;
+        return true;
+    }
+
+    String inputInfo() {
+        return keyboard.transportInfo();
+    }
 
     void type(const char* str, size_t len) {
         keyboard.write(str, len);

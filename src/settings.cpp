@@ -10,13 +10,20 @@
 #include "eeprom0.h"
 #include <ctype.h>
 #include <cstring>
+#include <sdkconfig.h>
 
 #define SETTINGS_ADDRESS 1
 #define SETTINGS_MAGIC_NUM_LEGACY 1234567891
-#define SETTINGS_MAGIC_NUM 1234567892
+#define SETTINGS_MAGIC_NUM_PREVIOUS 1234567892
+#define SETTINGS_MAGIC_NUM 1234567893
 
 namespace settings {
     // ===== PRIVATE ===== //
+    enum InputTransport : uint8_t {
+        INPUT_TRANSPORT_USB = 0,
+        INPUT_TRANSPORT_BLUETOOTH = 1
+    };
+
     typedef struct legacy_settings_t {
         uint32_t magic_num;
         char ssid[33];
@@ -24,6 +31,17 @@ namespace settings {
         char channel[5];
         char autorun[65];
     } legacy_settings_t;
+
+    typedef struct previous_settings_t {
+        uint32_t magic_num;
+        char ssid[33];
+        char password[65];
+        char channel[5];
+        char autorun[65];
+        char sta_ssid[33];
+        char sta_password[65];
+        uint8_t sta_autoconnect;
+    } previous_settings_t;
 
     typedef struct settings_t {
         uint32_t magic_num;
@@ -34,9 +52,18 @@ namespace settings {
         char sta_ssid[33];
         char sta_password[65];
         uint8_t sta_autoconnect;
+        uint8_t input_transport;
     } settings_t;
 
     settings_t data;
+
+    bool isBluetoothTransportSupported() {
+#if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(CONFIG_BT_ENABLED)
+        return true;
+#else
+        return false;
+#endif
+    }
 
     size_t safeStrLen(const char* str, size_t maxLen) {
         size_t len = 0;
@@ -70,6 +97,25 @@ namespace settings {
 
         int ch = atoi(channel);
         return (ch >= 1) && (ch <= 13);
+    }
+
+    bool parseTransportValue(const char* value, uint8_t* transportOut) {
+        if (!value || !transportOut) return false;
+
+        if (equalsIgnoreCase(value, "usb") ||
+            equalsIgnoreCase(value, "cable") ||
+            equalsIgnoreCase(value, "kablo")) {
+            *transportOut = INPUT_TRANSPORT_USB;
+            return true;
+        }
+
+        if (equalsIgnoreCase(value, "bluetooth") ||
+            equalsIgnoreCase(value, "ble")) {
+            *transportOut = INPUT_TRANSPORT_BLUETOOTH;
+            return true;
+        }
+
+        return false;
     }
 
     bool setSSIDInternal(const char* ssid, bool persist) {
@@ -140,6 +186,15 @@ namespace settings {
         return true;
     }
 
+    bool setInputTransportInternal(uint8_t transport, bool persist) {
+        if (transport > INPUT_TRANSPORT_BLUETOOTH) return false;
+        if ((transport == INPUT_TRANSPORT_BLUETOOTH) && !isBluetoothTransportSupported()) return false;
+
+        data.input_transport = transport;
+        if (persist) save();
+        return true;
+    }
+
     bool parseBoolValue(const char* value, bool* result) {
         if (!value || !result) return false;
 
@@ -195,6 +250,12 @@ namespace settings {
         return data.sta_autoconnect <= 1;
     }
 
+    bool isStoredInputTransportValid() {
+        if (data.input_transport > INPUT_TRANSPORT_BLUETOOTH) return false;
+        if ((data.input_transport == INPUT_TRANSPORT_BLUETOOTH) && !isBluetoothTransportSupported()) return false;
+        return true;
+    }
+
     String maskSecret(const char* value, bool includeSecrets) {
         if (!value || strlen(value) == 0) return "-";
         if (includeSecrets) return String(value);
@@ -221,6 +282,31 @@ namespace settings {
         setStaSSIDInternal("", false);
         setStaPasswordInternal("", false);
         setStaAutoconnectInternal(false, false);
+        setInputTransportInternal(INPUT_TRANSPORT_USB, false);
+        save();
+    }
+
+    void migratePreviousSettings() {
+        previous_settings_t oldData;
+        memset(&oldData, 0, sizeof(oldData));
+        eeprom::getObject(SETTINGS_ADDRESS, oldData);
+
+        if (oldData.magic_num != SETTINGS_MAGIC_NUM_PREVIOUS) {
+            reset();
+            return;
+        }
+
+        memset(&data, 0, sizeof(data));
+        data.magic_num = SETTINGS_MAGIC_NUM;
+
+        if (!(setSSIDInternal(oldData.ssid, false))) setSSIDInternal(WIFI_SSID, false);
+        if (!(setPasswordInternal(oldData.password, false))) setPasswordInternal(WIFI_PASSWORD, false);
+        if (!(setChannelInternal(oldData.channel, false))) setChannelInternal(WIFI_CHANNEL, false);
+        if (!(setAutorunInternal(oldData.autorun, false))) setAutorunInternal("", false);
+        if (!(setStaSSIDInternal(oldData.sta_ssid, false))) setStaSSIDInternal("", false);
+        if (!(setStaPasswordInternal(oldData.sta_password, false))) setStaPasswordInternal("", false);
+        setStaAutoconnectInternal(oldData.sta_autoconnect == 1, false);
+        setInputTransportInternal(INPUT_TRANSPORT_USB, false);
         save();
     }
 
@@ -238,6 +324,11 @@ namespace settings {
             return;
         }
 
+        if (data.magic_num == SETTINGS_MAGIC_NUM_PREVIOUS) {
+            migratePreviousSettings();
+            return;
+        }
+
         if (data.magic_num != SETTINGS_MAGIC_NUM) {
             reset();
             return;
@@ -252,6 +343,7 @@ namespace settings {
         if (!isStoredStaSSIDValid()) changed |= setStaSSIDInternal("", false);
         if (!isStoredStaPasswordValid()) changed |= setStaPasswordInternal("", false);
         if (!isStoredStaAutoconnectValid()) changed |= setStaAutoconnectInternal(false, false);
+        if (!isStoredInputTransportValid()) changed |= setInputTransportInternal(INPUT_TRANSPORT_USB, false);
 
         if (changed) save();
     }
@@ -269,6 +361,7 @@ namespace settings {
         setStaSSIDInternal("", false);
         setStaPasswordInternal("", false);
         setStaAutoconnectInternal(false, false);
+        setInputTransportInternal(INPUT_TRANSPORT_USB, false);
         save();
     }
 
@@ -279,7 +372,7 @@ namespace settings {
 
     String toString(bool includeSecrets) {
         String s;
-        s.reserve(256);
+        s.reserve(288);
 
         s += "ssid=";
         s += getSSID();
@@ -301,6 +394,9 @@ namespace settings {
         s += "\n";
         s += "sta_autoconnect=";
         s += getStaAutoconnect() ? "1" : "0";
+        s += "\n";
+        s += "input_transport=";
+        s += getInputTransport();
         s += "\n";
 
         return s;
@@ -339,6 +435,10 @@ namespace settings {
         return data.sta_autoconnect == 1;
     }
 
+    const char* getInputTransport() {
+        return (data.input_transport == INPUT_TRANSPORT_BLUETOOTH) ? "bluetooth" : "usb";
+    }
+
     bool set(const char* name, const char* value) {
         if (!name || !value) return false;
 
@@ -349,6 +449,7 @@ namespace settings {
         if (strcmp(name, "sta_ssid") == 0) return setStaSSID(value);
         if (strcmp(name, "sta_password") == 0) return setStaPassword(value);
         if (strcmp(name, "sta_autoconnect") == 0) return setStaAutoconnect(value);
+        if (strcmp(name, "input_transport") == 0) return setInputTransport(value);
         return false;
     }
 
@@ -380,6 +481,16 @@ namespace settings {
         bool parsed = false;
         if (!parseBoolValue(autoconnect, &parsed)) return false;
         return setStaAutoconnectInternal(parsed, true);
+    }
+
+    bool setInputTransport(const char* transport) {
+        uint8_t parsed = INPUT_TRANSPORT_USB;
+        if (!parseTransportValue(transport, &parsed)) return false;
+        return setInputTransportInternal(parsed, true);
+    }
+
+    void setInputTransportEnum(uint8_t transport) {
+        setInputTransportInternal(transport, true);
     }
 
     void setStaAutoconnectBool(bool autoconnect) {

@@ -5,6 +5,7 @@
 
 var current_settings_map = {};
 var current_wifi_map = {};
+var current_input_map = {};
 var show_passwords = false;
 var hide_passwords_timer = null;
 
@@ -56,6 +57,14 @@ function sta_autoconnect_is_enabled() {
   return current_settings_map.sta_autoconnect === "1";
 }
 
+function current_input_transport() {
+  return current_settings_map.input_transport === "bluetooth" ? "bluetooth" : "usb";
+}
+
+function bluetooth_supported() {
+  return current_input_map.ble_supported === "1";
+}
+
 function refresh_sta_autoconnect_ui() {
   var enabled = sta_autoconnect_is_enabled();
   set_text("sta_autoconnect", enabled ? tr("settings.autoconnectOn") : tr("settings.autoconnectOff"));
@@ -70,6 +79,26 @@ function translate_sta_status(status) {
   var key = "settings.staStatus." + status;
   var translated = tr(key);
   return translated === key ? status : translated;
+}
+
+function refresh_input_mode_ui() {
+  var transport = current_input_transport();
+  var supported = bluetooth_supported();
+  var connected = current_input_map.ble_connected === "1";
+
+  set_text("input_mode", transport === "bluetooth" ? tr("settings.inputModeBluetooth") : tr("settings.inputModeCable"));
+  set_text("bt_supported", supported ? tr("settings.state.supported") : tr("settings.state.unsupported"));
+  set_text("bt_connected", connected ? tr("settings.state.connected") : tr("settings.state.disconnected"));
+  set_text("bt_name", current_input_map.ble_name || "BLSWD");
+
+  if (E("toggle_input_transport")) {
+    E("toggle_input_transport").innerHTML = transport === "bluetooth" ? tr("settings.inputModeCable") : tr("settings.inputModeBluetooth");
+    E("toggle_input_transport").disabled = !supported;
+  }
+
+  if (E("bt_support_note")) {
+    E("bt_support_note").innerHTML = supported ? "" : tr("settings.btUnsupportedS2");
+  }
 }
 
 function update_reveal_button() {
@@ -119,6 +148,13 @@ function load_wifi_info() {
   });
 }
 
+function load_input_info() {
+  ws_send("input", function(msg) {
+    current_input_map = parse_key_value_lines(msg);
+    refresh_input_mode_ui();
+  });
+}
+
 // ===== WebSocket Actions ===== //
 function load_settings() {
   ws_send("settings", function(msg) {
@@ -128,11 +164,14 @@ function load_settings() {
     set_text("channel", current_settings_map.channel || "");
     set_text("autorun", current_settings_map.autorun || "");
     set_text("sta_ssid", current_settings_map.sta_ssid || "");
+    if (!current_settings_map.input_transport) current_settings_map.input_transport = "usb";
 
     if (!show_passwords) apply_password_fields(current_settings_map);
     refresh_sta_autoconnect_ui();
+    refresh_input_mode_ui();
     update_reveal_button();
     load_wifi_info();
+    load_input_info();
   });
 }
 
@@ -223,6 +262,21 @@ window.addEventListener("load", function() {
   bind_click("toggle_sta_autoconnect", function() {
     var nextValue = sta_autoconnect_is_enabled() ? "0" : "1";
     ws_send("set sta_autoconnect " + nextValue, function() {
+      load_settings();
+    });
+  });
+
+  bind_click("toggle_input_transport", function() {
+    if (!bluetooth_supported()) {
+      alert(tr("settings.error.btNotAvailable"));
+      return;
+    }
+
+    var nextValue = current_input_transport() === "bluetooth" ? "usb" : "bluetooth";
+    ws_send("set input_transport " + nextValue, function(msg) {
+      if (msg && msg.indexOf("ERROR:") === 0) {
+        alert(msg);
+      }
       load_settings();
     });
   });

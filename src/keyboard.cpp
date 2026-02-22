@@ -11,9 +11,18 @@
 
 #include "USBHID.h"
 
+#if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(CONFIG_BT_ENABLED)
+#include <BleKeyboard.h>
+#endif
 
 #include "keyboard.h"
 #include "debug.h"
+
+namespace {
+    const char* BLE_DEVICE_NAME = "BLSWD";
+    const char* BLE_MANUFACTURER = "BLSWD";
+    const unsigned long BT_DROP_LOG_INTERVAL_MS = 2000;
+}
 
 
 
@@ -78,6 +87,89 @@ HIDKeyboard::HIDKeyboard(): hid(){
 
 void HIDKeyboard::begin(){
     hid.begin();
+}
+
+bool HIDKeyboard::setTransport(KeyboardOutputTransport mode) {
+    if (mode == transport) return true;
+
+    if (mode == KeyboardOutputTransport::USB) {
+#if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(CONFIG_BT_ENABLED)
+        if (bleKeyboard && bleActive) {
+            bleKeyboard->end();
+            bleActive = false;
+            debugln("BLE keyboard stopped");
+        }
+#endif
+        transport = KeyboardOutputTransport::USB;
+        return true;
+    }
+
+    if (!isBluetoothSupported()) {
+        debugln("BLE keyboard transport unsupported on this target");
+        return false;
+    }
+
+#if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(CONFIG_BT_ENABLED)
+    if (!bleKeyboard) {
+        bleKeyboard = new BleKeyboard(BLE_DEVICE_NAME, BLE_MANUFACTURER, 100);
+        if (!bleKeyboard) {
+            debugln("BLE keyboard allocation failed");
+            return false;
+        }
+    }
+
+    if (!bleActive) {
+        bleKeyboard->begin();
+        bleInitialized = true;
+        bleActive = true;
+        debugf("BLE keyboard advertising as %s\n", BLE_DEVICE_NAME);
+    }
+
+    transport = KeyboardOutputTransport::BLUETOOTH;
+    return true;
+#else
+    return false;
+#endif
+}
+
+KeyboardOutputTransport HIDKeyboard::getTransport() const {
+    return transport;
+}
+
+bool HIDKeyboard::isBluetoothSupported() const {
+#if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(CONFIG_BT_ENABLED)
+    return true;
+#else
+    return false;
+#endif
+}
+
+bool HIDKeyboard::isBluetoothConnected() const {
+#if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(CONFIG_BT_ENABLED)
+    if (!bleKeyboard || !bleActive) return false;
+    return bleKeyboard->isConnected();
+#else
+    return false;
+#endif
+}
+
+const char* HIDKeyboard::getBluetoothName() const {
+    return BLE_DEVICE_NAME;
+}
+
+String HIDKeyboard::transportInfo() const {
+    String info;
+    info.reserve(96);
+    info += "transport=";
+    info += (transport == KeyboardOutputTransport::BLUETOOTH) ? "bluetooth" : "usb";
+    info += "\nble_supported=";
+    info += isBluetoothSupported() ? "1" : "0";
+    info += "\nble_connected=";
+    info += isBluetoothConnected() ? "1" : "0";
+    info += "\nble_name=";
+    info += getBluetoothName();
+    info += "\n";
+    return info;
 }
 
 
@@ -228,6 +320,21 @@ void HIDKeyboard::send(report* k) {
         debug(String(prev_report.modifiers, HEX));
         debugln("]");
 #endif // ENABLE_DEBUG
+        if (transport == KeyboardOutputTransport::BLUETOOTH) {
+#if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(CONFIG_BT_ENABLED)
+            if (bleKeyboard && bleActive && bleKeyboard->isConnected()) {
+                bleKeyboard->sendReport(reinterpret_cast<KeyReport*>(k));
+            } else {
+                unsigned long now = millis();
+                if ((now - lastBtDropLogMs) >= BT_DROP_LOG_INTERVAL_MS) {
+                    lastBtDropLogMs = now;
+                    debugln("BLE not connected, dropping keyboard report");
+                }
+            }
+#endif
+            return;
+        }
+
         hid.SendReport(2, (uint8_t*)k, sizeof(report));
 }
 
@@ -244,8 +351,6 @@ void HIDKeyboard::pressKey(uint8_t key, uint8_t modifiers) {
 }
 
 void HIDKeyboard::pressModifier(uint8_t key) {
-
-    ESP_LOGI("", "%s", key);
         prev_report.modifiers |= key;
 
         send(&prev_report);

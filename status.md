@@ -3,87 +3,82 @@
 ## Snapshot
 - Date: 2026-02-22
 - Project: `SuperWiFiDuck`
-- Focus of this pass: `Risk Remediation + Network Dashboard`
+- Focus of this pass: `GUI Kablo/Bluetooth HID output switch`
 - Firmware targets verified: `esp32-s2-kaluga-1`, `esp32-s3-devkitc-1`
 
-## Findings and Risks (Pre-Fix)
-### High Severity
-1. Plaintext credential exposure in default settings output (`src/settings.cpp`, surfaced via `src/cli.cpp`, `web/settings.js`).
-2. AP boot log leaked AP password (`src/webserver.cpp`).
+## Implemented in This Pass
 
-### Medium Severity
-1. STA password validation accepted `1..7` chars (`src/settings.cpp`, `web/settings.js`).
-2. CLI `set` echoed success even when validation failed (`src/cli.cpp`, `src/settings.cpp`).
-3. Reset/migration performed multiple EEPROM commits (`src/settings.cpp`).
+### 1) HID transport switching (USB/Bluetooth)
+- Added transport abstraction in `HIDKeyboard`:
+  - `KeyboardOutputTransport` enum (`USB`, `BLUETOOTH`)
+  - `setTransport`, `getTransport`, `isBluetoothSupported`, `isBluetoothConnected`, `getBluetoothName`, `transportInfo`
+  - Files: `src/keyboard.h`, `src/keyboard.cpp`
+- Added BLE HID keyboard routing on ESP32-S3 only:
+  - Uses `t-vk/ESP32 BLE Keyboard`
+  - Device name fixed to `BLSWD`
+  - If BLE not connected in Bluetooth mode, key reports are dropped (no-op) with throttled debug note.
 
-## Implemented Mitigations
-### A1. Secret masking by default
-- `settings::toString(bool includeSecrets = false)` added (`src/settings.h`, `src/settings.cpp`).
-- Default `settings` output now masks `password` and `sta_password` as `********` (or `-` if empty).
-- New CLI command `settings_secrets` returns unmasked values on explicit request (`src/cli.cpp`).
-- Settings GUI now has reveal/hide flow:
-  - `Reveal passwords` action fetches `settings_secrets` once.
-  - Auto-remask after 20 seconds.
-  - Reveal state is runtime-only (`web/settings.html`, `web/settings.js`, `web/i18n.js`).
+### 2) Persistent settings model extension
+- Added persistent key `input_transport` to settings schema:
+  - Stored as enum (`0=usb`, `1=bluetooth`)
+  - String aliases accepted: `usb|cable|kablo|bluetooth|ble`
+  - Files: `src/settings.h`, `src/settings.cpp`
+- Added new settings APIs:
+  - `getInputTransport()`
+  - `setInputTransport(const char*)`
+  - `setInputTransportEnum(uint8_t)`
+- Added hardware validation:
+  - S2 rejects Bluetooth transport values.
+  - S3 accepts Bluetooth transport values.
+- Added migration path:
+  - New settings magic: `1234567893`
+  - Migrates previous struct (`1234567892`) with default `input_transport=usb`.
 
-### A2. Log hardening
-- AP startup log no longer prints AP password (`src/webserver.cpp`).
+### 3) Runtime transport sync
+- Added `duckparser` runtime bridge:
+  - `applyConfiguredTransport()`
+  - `inputInfo()`
+  - Files: `src/duckparser.h`, `src/duckparser.cpp`
+- Behavior:
+  - Applies configured transport at startup.
+  - Re-syncs periodically in loop (500ms check) for immediate GUI/CLI mode changes.
+  - On apply failure, auto-fallback to USB and persists `input_transport=usb`.
+- `main.cpp` updated to invoke sync at boot and runtime.
 
-### A3. STA password policy hardening
-- STA password is now valid only when:
-  - empty string (open network), or
-  - length `8..64`.
-- `1..7` is rejected in firmware and UI (`src/settings.cpp`, `web/settings.js`, `web/i18n.js`).
+### 4) CLI extension
+- New CLI command:
+  - `input` -> prints:
+    - `transport=...`
+    - `ble_supported=...`
+    - `ble_connected=...`
+    - `ble_name=BLSWD`
+  - File: `src/cli.cpp`
+- `set input_transport ...` now triggers immediate runtime apply.
 
-### A4. Accurate `set` result behavior
-- Settings setters and dispatcher now return `bool` success:
-  - `set`, `setSSID`, `setPassword`, `setChannel`, `setAutorun`, `setStaSSID`, `setStaPassword`, `setStaAutoconnect`.
-- CLI `set` now prints:
-  - success only on valid write,
-  - `ERROR: invalid value or setting name` on failure.
-- CLI output masks secret values in success echo (`src/settings.h`, `src/settings.cpp`, `src/cli.cpp`).
+### 5) GUI extension (Settings page)
+- Added new section:
+  - Input Mode
+  - Bluetooth Support
+  - Bluetooth Connection
+  - Bluetooth Device Name
+  - Toggle button for `Kablo <-> Bluetooth`
+  - S2 unsupported warning and disabled control
+  - Files: `web/settings.html`, `web/settings.js`
+- Added EN/TR i18n keys for input mode and BT status:
+  - File: `web/i18n.js`
 
-### A5. EEPROM durability improvements
-- Added internal setter flow with `persist` control.
-- `reset()` and legacy migration now batch in memory and commit once.
-- `load()` only calls `save()` when correction is required (`src/settings.cpp`).
+### 6) Build configuration
+- Added BLE keyboard dependency only to S3 environments:
+  - `env:esp32-s3-devkitc-1`
+  - `env:esp32-s3-test`
+  - File: `platformio.ini`
 
-## New Features Added
-### B1. Expanded WiFi telemetry
-`wifi` output now includes:
-- `ap_ip`
-- `ap_ssid`
-- `sta_ssid`
-- `sta_status`
-- `sta_ip`
-- `sta_autoconnect`
-- `sta_rssi`
-- `sta_uptime_s`
-- `sta_last_disconnect_reason`
-- `mdns`
-
-Implementation details:
-- STA connect uptime tracking
-- STA disconnect reason tracking via WiFi events
-- RSSI and uptime reporting (`src/webserver.cpp`, `src/webserver.h`, `src/cli.cpp`).
-
-### B2. Index network dashboard (live)
-- Added Network Dashboard block to Index Status section (`web/index.html`).
-- Added 2-second polling of `wifi` telemetry and safe key=value parsing (`web/index.js`).
-- Dashboard shows AP IP, STA status/IP, RSSI, uptime, mDNS, and last disconnect reason.
-- Added EN/TR i18n labels and status translations (`web/i18n.js`).
-
-## Files Updated In This Pass
-- `src/settings.h`
-- `src/settings.cpp`
-- `src/cli.cpp`
-- `src/webserver.cpp`
-- `web/settings.html`
-- `web/settings.js`
-- `web/index.html`
-- `web/index.js`
-- `web/i18n.js`
-- `src/webfiles.h` (regenerated)
+### 7) Documentation and embedded web assets
+- README updated with Kablo/Bluetooth usage notes and `input` command.
+  - File: `README.md`
+- Regenerated embedded web assets:
+  - `python webconverter.py`
+  - `src/webfiles.h` updated.
 
 ## Verification Matrix
 | Command | Result |
@@ -93,14 +88,20 @@ Implementation details:
 | `C:\Users\lenovo\.platformio\penv\Scripts\pio.exe run -e esp32-s3-devkitc-1` | PASS |
 | `C:\Users\lenovo\.platformio\penv\Scripts\pio.exe test --without-uploading --without-testing` | PASS (`esp32-s2-test`, `esp32-s3-test`) |
 
-## On-Device Validation Status
-- Not executed in this pass.
-- Existing external blocker remains: serial/COM lock can prevent upload/runtime tests (`PermissionError(13) / access denied`).
+## Runtime Expectations (Post-Change)
+- S3:
+  - GUI/CLI `input_transport=bluetooth` switches HID output to BLE immediately.
+  - `input` command reports BLE support and connection state.
+  - BLE name is always `BLSWD`.
+- S2:
+  - Bluetooth input mode is blocked by validation.
+  - GUI shows unsupported warning and disabled toggle.
+  - USB HID behavior remains unchanged.
 
 ## Remaining Items
 1. Run on-device acceptance checks when COM port is free:
-   - `settings` masked by default
-   - `settings_secrets` explicit reveal behavior
-   - settings page reveal auto-remask after 20s
-   - network dashboard live refresh and STA telemetry transitions
-2. Optional hardening follow-up: restrict `settings_secrets` behind optional unlock/auth model.
+   - GUI toggle behavior (S3 + S2)
+   - BLE host connected/disconnected report behavior
+   - Script no-op behavior when Bluetooth mode is active without BLE host
+2. Optional security hardening:
+   - Add access control gate for `settings_secrets`.

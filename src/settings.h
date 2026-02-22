@@ -23,6 +23,7 @@ namespace settings {
     const char* getStaSSID();
     const char* getStaPassword();
     bool getStaAutoconnect();
+    const char* getInputTransport();
 
     int getChannelNum();
 
@@ -35,5 +36,7 @@ namespace settings {
     bool setStaSSID(const char* ssid);
     bool setStaPassword(const char* password);
     bool setStaAutoconnect(const char* autoconnect);
+    bool setInputTransport(const char* transport);
+    void setInputTransportEnum(uint8_t transport);
     void setStaAutoconnectBool(bool autoconnect);
 }

@@ -33,6 +33,8 @@ Video Demo:
     - [Örnek](#örnek)
   - [CLI Komutları](#cli-komutları)
     - [Genel](#genel)
+    - [Ağ ve Giriş Durumu](#ağ-ve-giriş-durumu)
+    - [Ayar Anahtarları](#ayar-anahtarları)
     - [SPIFFS Dosya Yönetimi](#spiffs-dosya-yönetimi)
   - [Hata Ayıklama](#hata-ayıklama)
   - [Geliştirme](#geliştirme)
@@ -69,6 +71,23 @@ AP + STA modu:
 - `Settings` bölümünden STA (router) bilgileri girildiğinde cihaz aynı anda ev/ofis ağına da bağlanır.
 - STA bağlantısı kurulduktan sonra GUI'ye router'ın verdiği IP adresi veya `http://wifiduck.local` üzerinden erişebilirsiniz.
 
+Kablo/Bluetooth giriş modu:
+- `Settings` sayfasından giriş modu `Kablo` (USB HID) veya `Bluetooth` (BLE HID Keyboard) olarak seçilebilir.
+- Bu seçim anında uygulanır, yeniden başlatma gerekmez.
+- Bluetooth cihaz adı sabittir: `BLSWD`.
+- ESP32-S2 kartlarda Bluetooth giriş modu desteklenmez (yalnızca USB).
+- Bluetooth modunda host bağlı değilse script çalışmaya devam eder, ancak tuş raporları gönderilmez.
+
+Web arayüz güncellemeleri:
+- `Index` sayfasındaki `Network Dashboard` bölümü `wifi` telemetrilerini yaklaşık her 2 saniyede bir yeniler.
+- `Settings` sayfasında AP/STA şifreleri varsayılan olarak maskelidir (`********`).
+- `Reveal passwords` ile şifreler geçici görünür, yaklaşık 20 saniye sonra tekrar maskelenir.
+
+Durum LED göstergesi:
+- Boot: mavi
+- Hazır: yeşil
+- Script çalışıyor: kırmızı (+ dahili LED blink)
+
 **Şifreyi unuttuysanız:**  
 `Erase Flash: Sketch + WiFi Settings` seçeneğiyle yeniden yükleme yapın.
 
@@ -90,6 +109,10 @@ pio run -e esp32-s2-kaluga-1 -t upload
 ```
 
 4. Ardından [Kullanım](#kullanım) adımlarını uygulayın.
+
+Kart özellik farkı:
+- `ESP32-S3`: USB HID + BLE HID keyboard (`input_transport=bluetooth` destekli)
+- `ESP32-S2`: USB HID (Bluetooth transport desteklenmez)
 
 ## Script Yazımı
 
@@ -195,12 +218,56 @@ CLI arayüzü seri bağlantıdan (115200 baud, newline) veya web arayüzünden (
 | `ram` | Boş RAM miktarını verir | `ram` |
 | `health` | Uptime, heap, SPIFFS ve script durumunu verir | `health` |
 | `version` | Sürüm bilgisini verir | `version` |
-| `settings` | Ayarları listeler | `settings` |
+| `settings` | Ayarları listeler (şifreler maskeli) | `settings` |
+| `settings_secrets` | Ayarları gizli alanlarla birlikte listeler | `settings_secrets` |
+| `input` | Aktif giriş transport durumunu verir | `input` |
+| `wifi` | AP/STA runtime ağ durumunu verir | `wifi` |
+| `sta_connect` | STA bağlantı denemesini hemen başlatır | `sta_connect` |
+| `sta_disconnect` | STA bağlantısını keser | `sta_disconnect` |
 | `set <name> <value>` | Ayar değeri değiştirir | `set ssid "duck-net"` |
 | `reset` | Ayarları varsayılana döndürür | `reset` |
 | `status` | Script çalışma durumunu verir | `status` |
 | `run <file>` | Script başlatır | `run /example.txt` |
 | `stop <file>` | Script durdurur | `stop /example.txt` |
+
+### Ağ ve Giriş Durumu
+
+`wifi` komutu aşağıdaki `key=value` alanlarını döndürür:
+
+- `ap_ip`
+- `ap_ssid`
+- `sta_ssid`
+- `sta_status` (`connected|connecting|disconnected|disabled`)
+- `sta_ip`
+- `sta_autoconnect` (`0|1`)
+- `sta_rssi` (bağlı değilse `-127`)
+- `sta_uptime_s`
+- `sta_last_disconnect_reason`
+- `mdns` (ör. `http://wifiduck.local`)
+
+`input` komutu aşağıdaki alanları döndürür:
+
+- `transport` (`usb|bluetooth`)
+- `ble_supported` (`0|1`)
+- `ble_connected` (`0|1`)
+- `ble_name` (`BLSWD`)
+
+### Ayar Anahtarları
+
+`set <name> <value>` için kullanılan anahtarlar:
+
+| Anahtar | Geçerli değer | Not |
+| --- | --- | --- |
+| `ssid` | `1-32` karakter | AP SSID |
+| `password` | `8-64` karakter | AP şifresi |
+| `channel` | `auto` veya `1-13` | AP kanal |
+| `autorun` | `0-64` karakter | Script yolu, boş olabilir |
+| `sta_ssid` | `0-32` karakter | Boş değer STA SSID temizler |
+| `sta_password` | boş veya `8-64` karakter | Boş değer açık ağa bağlanmak içindir |
+| `sta_autoconnect` | `0/1`, `on/off`, `true/false` | Boot sonrası otomatik STA denemesi |
+| `input_transport` | `usb`, `bluetooth` | Alias: `cable`, `kablo`, `ble` |
+
+Not: `input_transport=bluetooth` yalnızca ESP32-S3 üzerinde kabul edilir.
 
 ### SPIFFS Dosya Yönetimi
 
@@ -287,4 +354,5 @@ Bu projede kullanılan başlıca kütüphaneler:
 - [ESP32 Arduino Core](https://github.com/espressif/arduino-esp32)
 - [ESPAsyncTCP](https://github.com/me-no-dev/ESPAsyncTCP)
 - [ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncWebServer)
+- [ESP32 BLE Keyboard](https://github.com/T-vK/ESP32-BLE-Keyboard)
 - [SimpleCLI](https://github.com/spacehuhn/SimpleCLI)

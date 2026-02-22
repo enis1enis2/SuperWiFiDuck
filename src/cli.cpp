@@ -18,6 +18,7 @@
 // Import modules used for different commands
 #include "spiffs.h"
 #include "duckscript.h"
+#include "duckparser.h"
 #include "settings.h"
 #include "config.h"
 #include "webserver.h"
@@ -144,6 +145,15 @@ namespace cli {
         });
 
         /**
+         * \brief Create input command
+         *
+         * Prints runtime input transport info.
+         */
+        cli.addCommand("input", [](cmd* c) {
+            print(duckparser::inputInfo());
+        });
+
+        /**
          * \brief Create wifi command
          *
          * Prints AP/STA runtime network info.
@@ -192,8 +202,14 @@ namespace cli {
 
                 bool ok = settings::set(name.c_str(), value.c_str());
                 if (ok) {
+                    if (name == "input_transport") {
+                        bool applied = duckparser::applyConfiguredTransport();
+                        if (!applied) print("ERROR: bluetooth transport apply failed, reverted to usb");
+                    }
+
                     String shownValue = value;
                     if ((name == "password") || (name == "sta_password")) shownValue = "********";
+                    if (name == "input_transport") shownValue = settings::getInputTransport();
 
                     String response = "> set \"" + name + "\" to \"" + shownValue + "\"";
                     print(response);

@@ -21,6 +21,7 @@ namespace {
     DeviceState currentState = DeviceState::Booting;
     unsigned long lastBlinkMs = 0;
     bool builtinLedOn = false;
+    unsigned long lastTransportSyncMs = 0;
 
     void setRgbStatus(int r, int g, int b) {
 #if defined(ARDUINO_ARCH_ESP32) && defined(STATUS_RGB_PIN)
@@ -88,6 +89,7 @@ void setup() {
     delay(200);
     spiffs::begin();
     settings::begin();
+    duckparser::applyConfiguredTransport();
     cli::begin();
     webserver::begin();
 
@@ -99,5 +101,12 @@ void setup() {
 void loop() {
     webserver::update();
     debug_update();
+
+    unsigned long now = millis();
+    if ((now - lastTransportSyncMs) >= 500) {
+        lastTransportSyncMs = now;
+        duckparser::applyConfiguredTransport();
+    }
+
     updateStatusIndicator();
 }

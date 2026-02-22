@@ -7,9 +7,12 @@
 #pragma once
 
 #include <stddef.h> // size_t
+#include <Arduino.h> // String
 
 namespace duckparser {
     void parse(const char* str, size_t len);
     unsigned int getDelayTime();
     void beginKeyboard();
+    bool applyConfiguredTransport();
+    String inputInfo();
 };
