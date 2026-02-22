@@ -13,65 +13,71 @@
         <title>WiFi Duck | Settings</title>
 
         <link rel="stylesheet" type="text/css" href="style.css">
+        <script src="i18n.js"></script>
         <script src="script.js"></script>
         <script src="settings.js"></script>
     </head>
   	<body>
         <nav>
             <ul class="menu">
-                <li><a href="index.html">WiFi Duck</a></li>
-                <li><a href="settings.html">Settings</a></li>
-                <li><a href="terminal.html">Terminal</a></li>
-                <li><a href="credits.html">About</a></li>
+                <li><a href="index.html" data-i18n="nav.home">WiFi Duck</a></li>
+                <li><a href="settings.html" data-i18n="nav.settings">Settings</a></li>
+                <li><a href="terminal.html" data-i18n="nav.terminal">Terminal</a></li>
+                <li class="menu-lang">
+                    <select id="languageSelect" class="smooth select" aria-label="Language">
+                        <option value="en">EN</option>
+                        <option value="tr">TR</option>
+                    </select>
+                </li>
+                <li><a href="credits.html" data-i18n="nav.about">About</a></li>
             </ul>
         </nav>
 		<div id="status"></div>
 		<main>
 			<section>
-				<h1>WiFi</h1>
-				<p>Restart the device to apply new settings.</p>
+				<h1 data-i18n="settings.section.wifi">WiFi</h1>
+				<p data-i18n="settings.restartNotice">Restart the device to apply new settings.</p>
 				<table>
 				<tr>
-					<td>SSID:</td>
+					<td data-i18n="settings.ssid">SSID:</td>
 					<td id="ssid"></td>
-					<td><button class="primary" id="edit_ssid">edit</button></td>
+					<td><button class="primary" id="edit_ssid" data-i18n="settings.edit">edit</button></td>
 				</tr>
 				<tr>
-					<td>Password:</td>
+					<td data-i18n="settings.password">Password:</td>
 					<td id="password"></td>
-					<td><button class="primary" id="edit_password">edit</button></td>
+					<td><button class="primary" id="edit_password" data-i18n="settings.edit">edit</button></td>
 				</tr>
 				<tr>
-					<td>Channel:</td>
+					<td data-i18n="settings.channel">Channel:</td>
 					<td id="channel"></td>
-					<td><button class="primary" id="edit_channel">edit</button></td>
+					<td><button class="primary" id="edit_channel" data-i18n="settings.edit">edit</button></td>
 				</tr>
 				<tr>
-					<td>Autorun Script:</td>
+					<td data-i18n="settings.autorun">Autorun Script:</td>
 					<td id="autorun"></td>
-					<td><button class="warn" id="disable_autorun">disable</button></td>
+					<td><button class="warn" id="disable_autorun" data-i18n="settings.disable">disable</button></td>
 				</tr>
 				</table>
-				<button class="danger" id="reset">Reset settings</button>
+				<button class="danger" id="reset" data-i18n="settings.reset">Reset settings</button>
 			</section>
 			<section>
-				<h1>Update</h1>
+				<h1 data-i18n="settings.section.update">Update</h1>
 
-				<p>
-					Go to <a href="https://github.com/spacehuhntech/WiFiDuck/releases" target="_blank">wifiduck.com/releases</a>
-					to check for updates.<br>Select a .bin file and press upload to update the device.<br>
+				<p data-i18n-html="settings.updateHelp">
+					Go to releases to check for updates.<br>Select a .bin file and press upload to update the device.<br>
 				</p>
 
 				<form method='POST' action='/update' enctype='multipart/form-data'>
 				<input type='file' name='update'>
-				<input type='submit' class="warn" value='Upload'>
+				<input type='submit' class="warn" value='Upload' data-i18n-value="settings.upload">
 				</form>
 			</section>
 			<footer>
-				<a href="https://github.com/spacehuhntech/WiFiDuck" target="_blank">Source</a>
+				<a href="https://github.com/spacehuhntech/WiFiDuck" target="_blank" data-i18n="footer.source">Source</a>
 				<br><br>
 				<span id="version"></span><br>
-				Copyright (c) 2021 Spacehuhn Technologies<br>
+				<span data-i18n="footer.copyright">Copyright (c) Enis Polat</span><br>
 				<a href="https://spacehuhn.com" target="_blank">spacehuhn.com</a>
 			</footer>
 	</body>

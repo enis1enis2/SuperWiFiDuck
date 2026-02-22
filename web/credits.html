@@ -14,15 +14,23 @@
   <title>WiFi Duck | About</title>
 
   <link rel="stylesheet" type="text/css" href="style.css">
+  <script src="i18n.js"></script>
+  <script src="script.js"></script>
 </head>
 
 <body>
   <nav>
     <ul class="menu">
-      <li><a href="index.html">WiFi Duck</a></li>
-      <li><a href="settings.html">Settings</a></li>
-      <li><a href="terminal.html">Terminal</a></li>
-      <li><a href="credits.html">About</a></li>
+      <li><a href="index.html" data-i18n="nav.home">WiFi Duck</a></li>
+      <li><a href="settings.html" data-i18n="nav.settings">Settings</a></li>
+      <li><a href="terminal.html" data-i18n="nav.terminal">Terminal</a></li>
+      <li class="menu-lang">
+        <select id="languageSelect" class="smooth select" aria-label="Language">
+          <option value="en">EN</option>
+          <option value="tr">TR</option>
+        </select>
+      </li>
+      <li><a href="credits.html" data-i18n="nav.about">About</a></li>
     </ul>
   </nav>
   <div id="status"></div>
@@ -40,7 +48,7 @@
       <h1>License</h1>
       <p>
         MIT License<br>
-        Copyright (c) 2021 Spacehuhn Technologies<br>
+        Copyright (c) Enis Polat<br>
         <br>
         Permission is hereby granted, free of charge, to any person obtaining a copy
         of this software and associated documentation files (the "Software"), to deal
@@ -68,7 +76,7 @@
         - <a href="https://www.arduino.cc" target="_blank">Arduino</a><br>
         - <a href="https://github.com/adafruit/Adafruit_NeoPixel" target="_blank">Neopixel Library</a><br>
         - <a href="https://github.com/adafruit/Adafruit_DotStar" target="_blank">Dotstar Library</a><br>
-        - <a href="https://github.com/spacehuhn/hardware/tree/master/wifiduck" target="_blank">AVR, ESP8266 & SAMD Arduino Core</a><br>
+        - <a href="https://github.com/espressif/arduino-esp32" target="_blank">ESP32 Arduino Core</a><br>
         - <a href="https://github.com/me-no-dev/ESPAsyncTCP" target="_blank">ESPAsyncTCP</a><br>
         - <a href="https://github.com/me-no-dev/ESPAsyncWebServer" target="_blank">ESPAsyncWebServer</a><br>
         - <a href="https://github.com/spacehuhn/SimpleCLI" target="_blank">SimpleCLI</a>
@@ -86,10 +94,10 @@
     </section>
   </main>
   <footer>
-    <a href="https://github.com/spacehuhntech/WiFiDuck" target="_blank">Source</a>
+    <a href="https://github.com/spacehuhntech/WiFiDuck" target="_blank" data-i18n="footer.source">Source</a>
     <br><br>
     <span id="version"></span><br>
-    Copyright (c) 2021 Spacehuhn Technologies<br>
+    <span data-i18n="footer.copyright">Copyright (c) Enis Polat</span><br>
     <a href="https://spacehuhn.com" target="_blank">spacehuhn.com</a>
   </footer>
 </body>

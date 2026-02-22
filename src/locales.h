@@ -15,6 +15,7 @@
 #include "locale/locale_es.h"
 #include "locale/locale_fr.h"
 #include "locale/locale_ru.h"
+#include "locale/locale_tr.h"
 #include "locale/locale_dk.h"
 #include "locale/locale_be.h"
 #include "locale/locale_pt.h"

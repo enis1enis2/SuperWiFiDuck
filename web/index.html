@@ -13,64 +13,74 @@
         <title>WiFi Duck</title>
 
         <link rel="stylesheet" type="text/css" href="style.css">
+        <script src="i18n.js"></script>
         <script src="script.js"></script>
         <script src="index.js"></script>
     </head>
     <body>
         <nav>
             <ul class="menu">
-                <li><a href="index.html">WiFi Duck</a></li>
-                <li><a href="settings.html">Settings</a></li>
-                <li><a href="terminal.html">Terminal</a></li>
-                <li><a href="credits.html">About</a></li>
+                <li><a href="index.html" data-i18n="nav.home">WiFi Duck</a></li>
+                <li><a href="settings.html" data-i18n="nav.settings">Settings</a></li>
+                <li><a href="terminal.html" data-i18n="nav.terminal">Terminal</a></li>
+                <li class="menu-lang">
+                    <select id="languageSelect" class="smooth select" aria-label="Language">
+                        <option value="en">EN</option>
+                        <option value="tr">TR</option>
+                    </select>
+                </li>
+                <li><a href="credits.html" data-i18n="nav.about">About</a></li>
             </ul>
         </nav>
         <div id="status"></div>
         <main>
             <section>
-                <h1>Status</h1>
+                <h1 data-i18n="index.section.status">Status</h1>
                 <div class="row">
-                    <p><b>Storage: </b><span id="freeMemory">-</span></p>
-                    <button class="danger" id="format">format</button>
-                    <button class="warn" id="stop">stop</button>
-                    <button class="white" id="reconnect">reconnect</button>
+                    <p><b data-i18n="index.storage">Storage:</b> <span id="freeMemory">-</span></p>
+                    <button class="danger" id="format" data-i18n="index.format">format</button>
+                    <button class="warn" id="stop" data-i18n="index.stop">stop</button>
+                    <button class="white" id="reconnect" data-i18n="index.reconnect">reconnect</button>
                 </div>
             </section>
             <section>
-                <h1>Scripts <a class="reload" id="scriptsReload">&#x21bb;</a></h1>
+                <h1><span data-i18n="index.section.scripts">Scripts</span> <a class="reload" id="scriptsReload">&#x21bb;</a></h1>
+                <div class="row">
+                    <input id="fileFilter" type="text" class="smooth" data-i18n-placeholder="index.fileFilterPlaceholder" placeholder="Filter files...">
+                </div>
                 <table class="table" id="scriptTable"></table>
                 <div class="row">
-                    <input placeholder="Filename /<name>" type="text" class="smooth" value="/" id="newFile"/>
-                    <button class="success" onclick="create(get_new_filename())">create</button>
+                    <input type="text" class="smooth" value="/" id="newFile" data-i18n-placeholder="index.filenamePlaceholder" placeholder="Filename /<name>"/>
+                    <button class="success" onclick="create(get_new_filename())" data-i18n="index.create">create</button>
                 </div>
             </section>
             <section>
-                <h1>Editor <a class="reload" id="editorReload">&#x21bb;</a></h1>
+                <h1><span data-i18n="index.section.editor">Editor</span> <a class="reload" id="editorReload">&#x21bb;</a></h1>
                 <div class="row">
-                    <input placeholder="Filename /<name>" type="text" class="smooth" value="/" id="editorFile">
-                    <button class="danger" id="editorDelete">delete</button>
-                    <button class="primary" id="editorDownload">download</button>
-                    <button class="primary" id="editorAutorun">Enable autorun</button>
+                    <input type="text" class="smooth" value="/" id="editorFile" data-i18n-placeholder="index.filenamePlaceholder" placeholder="Filename /<name>">
+                    <button class="danger" id="editorDelete" data-i18n="index.delete">delete</button>
+                    <button class="primary" id="editorDownload" data-i18n="index.download">download</button>
+                    <button class="primary" id="editorAutorun" data-i18n="index.enableAutorun">Enable autorun</button>
                 </div>
                 <div class="row">
                     <textarea class="smooth" id="editor"></textarea>
                 </div>
                 <div class="row">
                     <div class="debugger">
-                        Output: <span id="editorinfo">saved</span>
+                        <span data-i18n="index.output">Output:</span> <span id="editorinfo" data-i18n="index.saved">saved</span>
                     </div>
                 </div>
                 <div class="row">
                     <div id="editor-primary-buttons">
-                        <button class="success" id="editorSave">save</button>
-                        <button class="warn" id="editorRun">run</button>
-                        <button class="danger" id="editorStop">stop</button>
+                        <button class="success" id="editorSave" data-i18n="index.save">save</button>
+                        <button class="warn" id="editorRun" data-i18n="index.run">run</button>
+                        <button class="danger" id="editorStop" data-i18n="index.stop">stop</button>
                     </div>
                 </div>
             </section>
             <section>
                 <!--<h1>Documentation</h1>-->
-                <h2>Scripting</h2>
+                <h2 data-i18n="index.section.docs">Scripting</h2>
                 <h3>Basics</h3>
                 <p>
                     Keys are separated by a single space.<br>
@@ -139,7 +149,7 @@
                         <tr>
                             <td><code>LOCALE</code></td>
                             <td><code>LOCALE DE</code></td>
-                            <td>Sets the keyboard layout. Available: <code>DE</code>, <code>GB</code>, <code>US</code>, <code>ES</code>, <code>FR</code>, <code>DK</code>, <code>RU</code>, <code>BE</code>, <code>PT</code>, <code>IT</code>, <code>SK</code>, <code>CZ</code>, <code>SI</code>, <code>BG</code>, <code>CA-FR</code>, <code>CH-DE</code>, <code>CH-FR</code>, <code>HU</code>
+                            <td>Sets the keyboard layout. Available: <code>DE</code>, <code>GB</code>, <code>US</code>, <code>ES</code>, <code>FR</code>, <code>DK</code>, <code>RU</code>, <code>TR</code>, <code>BE</code>, <code>PT</code>, <code>IT</code>, <code>SK</code>, <code>CZ</code>, <code>SI</code>, <code>BG</code>, <code>CA-FR</code>, <code>CH-DE</code>, <code>CH-FR</code>, <code>HU</code>
                             </td>
                         </tr>
                         <tr>
@@ -299,10 +309,10 @@
             </section>
         </main>
         <footer>
-            <a href="https://github.com/spacehuhntech/WiFiDuck" target="_blank">Source</a>
+            <a href="https://github.com/spacehuhntech/WiFiDuck" target="_blank" data-i18n="footer.source">Source</a>
             <br><br>
             <span id="version"></span><br>
-            Copyright (c) 2021 Spacehuhn Technologies<br>
+            <span data-i18n="footer.copyright">Copyright (c) Enis Polat</span><br>
             <a href="https://spacehuhn.com" target="_blank">spacehuhn.com</a>
         </footer>
     </body>

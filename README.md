@@ -77,7 +77,7 @@ from within a web interface. This means that, unlike other BadUSBs, you don't ne
 5. [Recommended] Open `Settings` (top right corner) and update SSID and password
 
 **Help I forgot the password:**
-[Flash the ESP32](#flash-esp32), but make sure that you select `Erase Flash: Sketch + WiFi Settings`
+[Flash ESP32 S2/S3](#flash-esp32-s2s3), but make sure that you select `Erase Flash: Sketch + WiFi Settings`
 under Tools in the Arduino IDE.  
 
 If you have further questions, check out the [issue section](https://github.com/spacehuhn/WiFiDuck/issues).  
@@ -186,7 +186,7 @@ STRING Hello World!
 
 ## CLI Commands
 
-The command line interface or CLI is accessible using a serial connection to the ESP8266 (115200 baud, Newline ending) or via the web interface at `192.168.4.1/terminal.html`.  
+The command line interface or CLI is accessible using a serial connection to the ESP32 S2/S3 (115200 baud, Newline ending) or via the web interface at `192.168.4.1/terminal.html`.  
 
 ### General
 
@@ -198,7 +198,7 @@ The command line interface or CLI is accessible using a serial connection to the
 | settings | Returns list of settings | `settings` |
 | set -n/ame <value> -v/alue <value> | Sets value of a specific setting | `set ssid "why fight duck"` |
 | reset | Resets all settings to their default values | `reset` |
-| status | Returns status of i2c connection with Atmega32u4 | `status` |
+| status | Returns current script execution status | `status` |
 | run <...> | Starts executing a Ducky script | `run example.txt` |
 | stop <...> | Stops executing a Ducky script | `stop example.txt` |
 
@@ -233,17 +233,17 @@ The `web/` folder contains all `.html`, `.css`, `.js` files.
 You can edit and test them locally as long as you're connected to the WiFi Duck
 network thanks to the websocket connection handled by JavaScript in the background.  
 
-To get the new files onto the ESP8266, run `python3 webconverter.py` in the
+To get the new files onto the ESP32, run `python3 webconverter.py` in the
 repository folder.  
 It gzips all files inside `web/`, converts them into a hex array
-and saves it in `esp_duck/webfiles.h`.  
-Now you just need to [flash](#flash-software) the ESP8266 again.  
+and saves it in `src/webfiles.h`.  
+Now you just need to [flash](#flash-esp32-s2s3) the ESP32 again.  
 
 
 ### Change Keyboard Identifier
 
-The default VendorID/ProductID is Expressif Systems. 
-To emulate a different brand of keyboard, modify the build parameters in `platform.ini`
+The default VendorID/ProductID is Espressif Systems. 
+To emulate a different brand of keyboard, modify the build parameters in `platformio.ini`
 
 For example:  
 
@@ -274,6 +274,7 @@ Currently supported keyboard layouts:
 - [:es: ES](https://github.com/spacehuhn/WiFiDuck/blob/master/atmega_duck/locale_es.h)
 - [:denmark: DK](https://github.com/spacehuhn/WiFiDuck/blob/master/atmega_duck/locale_dk.h)
 - [:ru: RU](https://github.com/spacehuhn/WiFiDuck/blob/master/atmega_duck/locale_ru.h)
+- [:tr: TR](src/locale/locale_tr.h)
 - [:fr: FR](https://github.com/spacehuhn/WiFiDuck/blob/master/atmega_duck/locale_fr.h)
 - [:belgium: BE](https://github.com/spacehuhn/WiFiDuck/blob/master/atmega_duck/locale_be.h)
 - [:portugal: PT](https://github.com/spacehuhn/WiFiDuck/blob/master/atmega_duck/locale_pt.h)
@@ -375,7 +376,7 @@ Software libraries used in this project:
   - [Arduino](https://www.arduino.cc)
   - [Neopixel Library](https://github.com/adafruit/Adafruit_NeoPixel)
   - [Dotstar Library](https://github.com/adafruit/Adafruit_DotStar)
-  - [AVR, ESP8266 & SAMD Arduino Core](https://github.com/spacehuhn/hardware/tree/master/wifiduck)
+  - [ESP32 Arduino Core](https://github.com/espressif/arduino-esp32)
   - [ESPAsyncTCP](https://github.com/me-no-dev/ESPAsyncTCP)
   - [ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncWebServer)
   - [SimpleCLI](https://github.com/spacehuhn/SimpleCLI)

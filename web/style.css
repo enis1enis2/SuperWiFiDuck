@@ -97,6 +97,11 @@ nav a {
 	display: inline-block;
 }
 
+.menu li.menu-lang {
+	float: right;
+	margin-left: 8px;
+}
+
 .menu li:last-child {
 	float: right;
 }

@@ -36,5 +36,8 @@
 #define HOSTNAME "wifiduck"
 #define URL "wifi.duck"
 
+// ESP32-S3 onboard RGB LED data pin (WS2812 on many DevKitC boards)
+#define STATUS_RGB_PIN 48
+
 
 

@@ -18,6 +18,9 @@ var unsaved_changed = false;
 // ! Flag if editor has loaded a file yet
 var file_opened = false;
 
+// ! Current file filter string
+var file_filter = "";
+
 // ========== Global Functions ========== //
 
 // ===== Value Getters ===== //
@@ -90,7 +93,11 @@ function update_file_list() {
     var percent = Math.floor(byte / 100);
     var freepercent = Math.floor(free / percent);
 
-    E("freeMemory").innerHTML = used + " byte used (" + freepercent + "% free)";
+    if (getLanguage() === "tr") {
+      E("freeMemory").innerHTML = used + " bayt kullanildi (%" + freepercent + " bos)";
+    } else {
+      E("freeMemory").innerHTML = used + " byte used (" + freepercent + "% free)";
+    }
 
     file_list = "";
 
@@ -101,9 +108,9 @@ function update_file_list() {
       var tableHTML = "<thead>\n";
 
       tableHTML += "<tr>\n";
-      tableHTML += "<th>File</th>\n";
-      tableHTML += "<th>Byte</th>\n";
-      tableHTML += "<th>Actions</th>\n";
+      tableHTML += "<th>" + tr("index.table.file") + "</th>\n";
+      tableHTML += "<th>" + tr("index.table.size") + "</th>\n";
+      tableHTML += "<th>" + tr("index.table.actions") + "</th>\n";
       tableHTML += "</tr>\n";
       tableHTML += "</thead>\n";
       tableHTML += "<tbody>\n";
@@ -112,8 +119,9 @@ function update_file_list() {
         var data = lines[i].split(" ");
         var fileName = data[0];
         var fileSize = data[1];
+        var filteredOut = file_filter.length > 0 && fileName.toLowerCase().indexOf(file_filter.toLowerCase()) === -1;
 
-        if (fileName.length > 0) {
+        if (fileName.length > 0 && !filteredOut) {
           if (i == 0 && !file_opened) {
             read(fileName);
           }
@@ -121,8 +129,8 @@ function update_file_list() {
           tableHTML += "<td>" + fileName + "</td>\n";
           tableHTML += "<td>" + fileSize + "</td>\n";
           tableHTML += "<td>\n";
-          tableHTML += "<button class=\"primary\" onclick=\"read('" + fileName + "')\">edit</button>\n";
-          tableHTML += "<button class=\"warn\" onclick=\"run('" + fileName + "')\">run</button>\n";
+          tableHTML += "<button class=\"primary\" onclick=\"read('" + fileName + "')\">" + tr("index.table.edit") + "</button>\n";
+          tableHTML += "<button class=\"warn\" onclick=\"run('" + fileName + "')\">" + tr("index.table.run") + "</button>\n";
           tableHTML += "</tr>\n";
         }
       }
@@ -135,9 +143,9 @@ function update_file_list() {
 
 // ! Format SPIFFS
 function format() {
-  if (confirm("Format SPIFFS? This will delete all scripts!")) {
+  if (confirm(tr("index.confirm.format"))) {
     ws_send("format", log_ws);
-    alert("Formatting will take a minute.\nYou have to reconnect afterwards.");
+    alert(tr("index.alert.format"));
   }
 }
 
@@ -254,7 +262,7 @@ function write(fileName, content) {
 function save() {
   write(get_editor_filename(), get_editor_content());
   unsaved_changed = false;
-  E("editorinfo").innerHTML = "saved";
+  E("editorinfo").innerHTML = tr("index.saved");
   update_file_list();
 }
 
@@ -277,7 +285,7 @@ window.addEventListener("load", function() {
   E("editorSave").onclick = save;
 
   E("editorDelete").onclick = function() {
-    if (confirm("Delete " + get_editor_filename() + "?")) {
+    if (confirm(tr("index.confirm.delete", { file: get_editor_filename() }))) {
       remove(get_editor_filename());
     }
   };
@@ -300,12 +308,19 @@ window.addEventListener("load", function() {
 
   E("editor").onkeyup = function() {
     unsaved_changed = true;
-    E("editorinfo").innerHTML = "unsaved changes";
+    E("editorinfo").innerHTML = tr("index.unsaved");
   }
 
   E("editorAutorun").onclick = function() {
-    if (confirm("Run this script automatically on startup?\nYou can disable it in the settings."))
+    if (confirm(tr("index.confirm.autorun")))
       autorun(get_editor_filename());
+  }
+
+  if (E("fileFilter")) {
+    E("fileFilter").oninput = function() {
+      file_filter = E("fileFilter").value || "";
+      update_file_list();
+    };
   }
 
   // ! Make all <code>s append to the editor when clicked

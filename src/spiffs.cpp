@@ -31,11 +31,11 @@ namespace spiffs {
         create(FILE_NAME);
         File f = open(FILE_NAME);
         if (!f) {
-            ESP_LOGE("", "test fs fail!");
+            debugln("Startup FS test failed");
             format();
         } else {
             f.close();
-            ESP_LOGE("", "test fs done!");
+            debugln("Startup FS test passed");
             remove(FILE_NAME);
         }
     }
@@ -73,11 +73,11 @@ namespace spiffs {
     File open(String fileName) {
         fixPath(fileName);
 
-        ESP_LOGI("", "File name %s", fileName);
+        ESP_LOGI("", "File name %s", fileName.c_str());
 
-        File f = LittleFS.open(fileName, "a+");
+        File f = LittleFS.open(fileName, "r");
 
-        f.seek(0);
+        if (f) f.seek(0);
 
         return f;
     }
@@ -93,9 +93,6 @@ namespace spiffs {
     void remove(String fileName) {
         fixPath(fileName);
 
-        File f = LittleFS.open(fileName, "a+");
-        f.close();
-
         LittleFS.remove(fileName);
     }
 
@@ -107,8 +104,8 @@ namespace spiffs {
     }
 
     void write(String fileName, const char* str) {
-        ESP_LOGE("", "write!!!!!!");
-        File f = open(fileName);
+        fixPath(fileName);
+        File f = LittleFS.open(fileName, "a+");
 
         if (f) {
             f.println(str);
@@ -120,8 +117,8 @@ namespace spiffs {
     }
 
     void write(String fileName, const uint8_t* buf, size_t len) {
-        ESP_LOGE("", "write!!!!!! utf8");
-        File f = open(fileName);
+        fixPath(fileName);
+        File f = LittleFS.open(fileName, "a+");
 
         if (f) {
             f.write(buf, len);
@@ -138,7 +135,7 @@ namespace spiffs {
 
         fixPath(dirName);
 
-        File root = open(dirName);
+        File root = LittleFS.open(dirName, "r");
 
         File file = root.openNextFile();
 
@@ -159,7 +156,9 @@ namespace spiffs {
 
     void streamOpen(String fileName) {
         streamClose();
-        streamFile = open(fileName);
+        fixPath(fileName);
+        streamFile = LittleFS.open(fileName, "a+");
+        if (streamFile) streamFile.seek(0);
         if (!streamFile) debugln("ERROR: No stream file open");
         else ESP_LOGI("", "File opened!");
     }

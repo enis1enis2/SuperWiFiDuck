@@ -1,9 +1,12 @@
 /*
    This software is licensed under the MIT License. See the license file for details.
    Source: https://github.com/spacehuhntech/WiFiDuck
- */
+*/
 
 #pragma once
+
+#include <stdint.h>
+#include <stddef.h>
 
 typedef struct hid_locale_t {
     uint8_t* ascii;

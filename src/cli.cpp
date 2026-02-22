@@ -1,5 +1,3 @@
-#include <dummy.h>
-
 /*!
    \file esp_duck/cli.cpp
    \brief Command line interface source
@@ -86,6 +84,35 @@ namespace cli {
         });
 
         /**
+         * \brief Create health command
+         *
+         * Prints quick health telemetry:
+         * uptime, heap, SPIFFS usage and script state.
+         */
+        cli.addCommand("health", [](cmd* c) {
+            String res;
+            res.reserve(192);
+
+            res += "uptime_ms=";
+            res += String(millis());
+            res += "\nheap_free=";
+            res += String(ESP.getFreeHeap());
+            res += "\nspiffs_used=";
+            res += String(spiffs::usedBytes());
+            res += "\nspiffs_free=";
+            res += String(spiffs::freeBytes());
+            res += "\nscript_running=";
+            res += duckscript::isRunning() ? "1" : "0";
+
+            if (duckscript::isRunning()) {
+                res += "\ncurrent_script=";
+                res += duckscript::currentScript();
+            }
+
+            print(res);
+        });
+
+        /**
          * \brief Create version command
          *
          * Prints the current version number
@@ -146,21 +173,16 @@ namespace cli {
         /**
          * \brief Create status command
          *
-         * Prints status of i2c connection to atmega32u4:
+         * Prints current script execution status:
          * running <script>
-         * connected
-         * i2c connection problem
+         * ready
          */
         cli.addCommand("status", [](cmd* c) {
-            if (true) {
-                if (duckscript::isRunning()) {
-                    String s = "running " + duckscript::currentScript();
-                    print(s);
-                } else {
-                    print("Super WiFiDuck -- Ready");
-                }
+            if (duckscript::isRunning()) {
+                String s = "running " + duckscript::currentScript();
+                print(s);
             } else {
-                print("Internal connection problem");
+                print("Super WiFiDuck -- Ready");
             }
         });
 
@@ -400,7 +422,7 @@ namespace cli {
 
                 char buffer[len];
 
-                size_t read = spiffs::streamRead(buffer, len);
+                spiffs::streamRead(buffer, len);
 
                 print(buffer);
             } else {

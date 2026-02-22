@@ -24,8 +24,8 @@
 #ifndef USB_VID
 #define USB_VID USB_ESPRESSIF_VID
 #endif
-#ifndef USB_PID
-#define USB_PID 0x0002
+#ifndef USB_CUSTOM_PID
+#define USB_CUSTOM_PID 0x0002
 #endif
 #ifndef USB_MANUFACTURER
 #define USB_MANUFACTURER "Espressif Systems"
@@ -126,7 +126,7 @@ void tud_resume_cb(void){
 
 ESPUSB::ESPUSB(size_t task_stack_size, uint8_t event_task_priority)
 :vid(USB_VID)
-,pid(USB_PID)
+,pid(USB_CUSTOM_PID)
 ,product_name(USB_PRODUCT)
 ,manufacturer_name(USB_MANUFACTURER)
 ,serial_number(USB_SERIAL)

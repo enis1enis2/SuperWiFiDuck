@@ -11,6 +11,8 @@
 #include <ArduinoOTA.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
+#include <cstring>
+#include <cstdlib>
 
 #include "config.h"
 #include "debug.h"
@@ -22,7 +24,7 @@
 
 void reply(AsyncWebServerRequest* request, int code, const char* type, const uint8_t* data, size_t len) {
     AsyncWebServerResponse* response =
-        request->beginResponse_P(code, type, data, len);
+        request->beginResponse(code, type, data, len);
 
     response->addHeader("Content-Encoding", "gzip");
     request->send(response);
@@ -62,8 +64,10 @@ namespace webserver {
             AwsFrameInfo* info = (AwsFrameInfo*)arg;
 
             if (info->opcode == WS_TEXT) {
-                char* msg = (char*)data;
-                msg[len] = 0;
+                char* msg = (char*)malloc(len + 1);
+                if (!msg) return;
+                memcpy(msg, data, len);
+                msg[len] = '\0';
 
                 debugf("Message from %u [%llu byte]=%s", client->id(), info->len, msg);
 
@@ -73,6 +77,7 @@ namespace webserver {
                     debugf("%s\n", str);
                 }, false);
                 currentClient = nullptr;
+                free(msg);
             }
         }
     }
@@ -128,7 +133,7 @@ namespace webserver {
             if (error == OTA_AUTH_ERROR) events.send("Auth Failed", "ota");
             else if (error == OTA_BEGIN_ERROR) events.send("Begin Failed", "ota");
             else if (error == OTA_CONNECT_ERROR) events.send("Connect Failed", "ota");
-            else if (error == OTA_RECEIVE_ERROR) events.send("Recieve Failed", "ota");
+            else if (error == OTA_RECEIVE_ERROR) events.send("Receive Failed", "ota");
             else if (error == OTA_END_ERROR) events.send("End Failed", "ota");
         });
         ArduinoOTA.setHostname(HOSTNAME);

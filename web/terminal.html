@@ -13,27 +13,34 @@
         <title>WiFi Duck | Terminal</title>
 
         <link rel="stylesheet" type="text/css" href="style.css">
+        <script src="i18n.js"></script>
         <script src="script.js"></script>
         <script src="terminal.js"></script>
     </head>
   	<body>
         <nav>
             <ul class="menu">
-                <li><a href="index.html">WiFi Duck</a></li>
-                <li><a href="settings.html">Settings</a></li>
-                <li><a href="terminal.html">Terminal</a></li>
-                <li><a href="credits.html">About</a></li>
+                <li><a href="index.html" data-i18n="nav.home">WiFi Duck</a></li>
+                <li><a href="settings.html" data-i18n="nav.settings">Settings</a></li>
+                <li><a href="terminal.html" data-i18n="nav.terminal">Terminal</a></li>
+                <li class="menu-lang">
+                    <select id="languageSelect" class="smooth select" aria-label="Language">
+                        <option value="en">EN</option>
+                        <option value="tr">TR</option>
+                    </select>
+                </li>
+                <li><a href="credits.html" data-i18n="nav.about">About</a></li>
             </ul>
         </nav>
 		<div id="status"></div>
 		<main>
 			<section>
-				<h2>Terminal</h2>
+				<h2 data-i18n="terminal.section.title">Terminal</h2>
 				<div class="row">
 					<input type="text" class="smooth" id="input" value="help">
-					<button class="primary" id="send">send</button>
-					<button class="warn" id="clear">clear</button>
-					<button class="white" id="reconnect">reconnect</button>
+					<button class="primary" id="send" data-i18n="terminal.send">send</button>
+					<button class="warn" id="clear" data-i18n="terminal.clear">clear</button>
+					<button class="white" id="reconnect" data-i18n="terminal.reconnect">reconnect</button>
 				</div>
 				<div class="row">
 					<div id="output" class="terminal"></div>
@@ -41,10 +48,10 @@
 			</section>
 		</main>
         <footer>
-            <a href="https://github.com/spacehuhntech/WiFiDuck" target="_blank">Source</a>
+            <a href="https://github.com/spacehuhntech/WiFiDuck" target="_blank" data-i18n="footer.source">Source</a>
             <br><br>
             <span id="version"></span><br>
-            Copyright (c) 2021 Spacehuhn Technologies<br>
+            <span data-i18n="footer.copyright">Copyright (c) Enis Polat</span><br>
             <a href="https://spacehuhn.com" target="_blank">spacehuhn.com</a>
         </footer>
   	</body>

@@ -27,7 +27,6 @@ namespace duckparser {
     bool inComment = false;
 
     int defaultDelay = 5;
-    int repeatNum    = 0;
 
     unsigned long interpretTime  = 0;
     unsigned long sleepStartTime = 0;
@@ -194,42 +193,46 @@ namespace duckparser {
             else if (compare1(cmd->str, cmd->len, "LOCALE", CASE_SENSETIVE)) {
                 word_node* w = cmd->next;
 
-                if (compare1(w->str, w->len, "US", CASE_INSENSETIVE)) {
-                    keyboard.setLocale(&locale_us);
-                } else if (compare1(w->str, w->len, "DE", CASE_INSENSETIVE)) {
-                    keyboard.setLocale(&locale_de);
-                } else if (compare1(w->str, w->len, "RU", CASE_INSENSETIVE)) {
-                    keyboard.setLocale(&locale_ru);
-                } else if (compare1(w->str, w->len, "GB", CASE_INSENSETIVE)) {
-                    keyboard.setLocale(&locale_gb);
-                } else if (compare1(w->str, w->len, "ES", CASE_INSENSETIVE)) {
-                    keyboard.setLocale(&locale_es);
-                } else if (compare1(w->str, w->len, "FR", CASE_INSENSETIVE)) {
-                    keyboard.setLocale(&locale_fr);
-                } else if (compare1(w->str, w->len, "DK", CASE_INSENSETIVE)) {
-                    keyboard.setLocale(&locale_dk);
-                } else if (compare1(w->str, w->len, "BE", CASE_INSENSETIVE)) {
-                    keyboard.setLocale(&locale_be);
-                } else if (compare1(w->str, w->len, "PT", CASE_INSENSETIVE)) {
-                    keyboard.setLocale(&locale_pt);
-                } else if (compare1(w->str, w->len, "IT", CASE_INSENSETIVE)) {
-                    keyboard.setLocale(&locale_it);
-                } else if (compare1(w->str, w->len, "SK", CASE_INSENSETIVE)) {
-                    keyboard.setLocale(&locale_sk);
-                } else if (compare1(w->str, w->len, "CZ", CASE_INSENSETIVE)) {
-                    keyboard.setLocale(&locale_cz);
-                } else if (compare1(w->str, w->len, "SI", CASE_INSENSETIVE)) {
-                    keyboard.setLocale(&locale_si);
-                } else if (compare1(w->str, w->len, "BG", CASE_INSENSETIVE)) {
-                    keyboard.setLocale(&locale_bg);
-                } else if (compare1(w->str, w->len, "CA-FR", CASE_INSENSETIVE)) {
-                    keyboard.setLocale(&locale_cafr);
-                } else if (compare1(w->str, w->len, "CH-DE", CASE_INSENSETIVE)) {
-                    keyboard.setLocale(&locale_chde);
-                } else if (compare1(w->str, w->len, "CH-FR", CASE_INSENSETIVE)) {
-                    keyboard.setLocale(&locale_chfr);
-                } else if (compare1(w->str, w->len, "HU", CASE_INSENSETIVE)) {
-                    keyboard.setLocale(&locale_hu);
+                if (w) {
+                    if (compare1(w->str, w->len, "US", CASE_INSENSETIVE)) {
+                        keyboard.setLocale(&locale_us);
+                    } else if (compare1(w->str, w->len, "DE", CASE_INSENSETIVE)) {
+                        keyboard.setLocale(&locale_de);
+                    } else if (compare1(w->str, w->len, "RU", CASE_INSENSETIVE)) {
+                        keyboard.setLocale(&locale_ru);
+                    } else if (compare1(w->str, w->len, "TR", CASE_INSENSETIVE)) {
+                        keyboard.setLocale(&locale_tr);
+                    } else if (compare1(w->str, w->len, "GB", CASE_INSENSETIVE)) {
+                        keyboard.setLocale(&locale_gb);
+                    } else if (compare1(w->str, w->len, "ES", CASE_INSENSETIVE)) {
+                        keyboard.setLocale(&locale_es);
+                    } else if (compare1(w->str, w->len, "FR", CASE_INSENSETIVE)) {
+                        keyboard.setLocale(&locale_fr);
+                    } else if (compare1(w->str, w->len, "DK", CASE_INSENSETIVE)) {
+                        keyboard.setLocale(&locale_dk);
+                    } else if (compare1(w->str, w->len, "BE", CASE_INSENSETIVE)) {
+                        keyboard.setLocale(&locale_be);
+                    } else if (compare1(w->str, w->len, "PT", CASE_INSENSETIVE)) {
+                        keyboard.setLocale(&locale_pt);
+                    } else if (compare1(w->str, w->len, "IT", CASE_INSENSETIVE)) {
+                        keyboard.setLocale(&locale_it);
+                    } else if (compare1(w->str, w->len, "SK", CASE_INSENSETIVE)) {
+                        keyboard.setLocale(&locale_sk);
+                    } else if (compare1(w->str, w->len, "CZ", CASE_INSENSETIVE)) {
+                        keyboard.setLocale(&locale_cz);
+                    } else if (compare1(w->str, w->len, "SI", CASE_INSENSETIVE)) {
+                        keyboard.setLocale(&locale_si);
+                    } else if (compare1(w->str, w->len, "BG", CASE_INSENSETIVE)) {
+                        keyboard.setLocale(&locale_bg);
+                    } else if (compare1(w->str, w->len, "CA-FR", CASE_INSENSETIVE)) {
+                        keyboard.setLocale(&locale_cafr);
+                    } else if (compare1(w->str, w->len, "CH-DE", CASE_INSENSETIVE)) {
+                        keyboard.setLocale(&locale_chde);
+                    } else if (compare1(w->str, w->len, "CH-FR", CASE_INSENSETIVE)) {
+                        keyboard.setLocale(&locale_chfr);
+                    } else if (compare1(w->str, w->len, "HU", CASE_INSENSETIVE)) {
+                        keyboard.setLocale(&locale_hu);
+                    }
                 }
                 
                 ignore_delay = true;
@@ -246,12 +249,6 @@ namespace duckparser {
                 defaultDelay = toInt(line_str, line_str_len);
                 ignore_delay = true;
             }
-
-//            // REPEAT (-> repeat last command n times)
-//            else if (compare1(cmd->str, cmd->len, "REPEAT", CASE_SENSETIVE) || compare1(cmd->str, cmd->len, "REPLAY", CASE_SENSETIVE)) {
-//                repeatNum    = toInt(line_str, line_str_len) + 1;
-//                ignore_delay = true;
-//            }
 
             // STRING (-> type each character)
             else if (inString || compare1(cmd->str, cmd->len, "STRING", CASE_SENSETIVE)) {
@@ -322,16 +319,10 @@ namespace duckparser {
 
             if (!inString && !inComment && !ignore_delay) sleep(defaultDelay);
 
-            if (line_end && (repeatNum > 0)) --repeatNum;
-
             interpretTime = millis();
         }
 
         line_list_destroy1(l);
-    }
-
-    int getRepeats() {
-        return repeatNum;
     }
 
     unsigned int getDelayTime() {

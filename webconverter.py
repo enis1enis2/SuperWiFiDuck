@@ -4,13 +4,12 @@
 """
 
 import os
-import binascii
 import gzip
 
 def get_file_content(path):
-    file = open(path,"r")
-    content = file.read().encode("utf-8")
-    file.close();
+    file = open(path, "rb")
+    content = file.read()
+    file.close()
 
     gzip_content = gzip.compress(content)
 
@@ -80,9 +79,9 @@ def write_arrays(files, output):
         write_hex_array(filename, output)
 
 def main():
-    web_files = os.listdir("web/")
+    web_files = sorted(os.listdir("web/"))
 
-    outputfile = open("esp_duck/webfiles.h", "w+")
+    outputfile = open("src/webfiles.h", "w+", encoding="utf-8")
     outputfile.write("#pragma once\n\n")
 
     outputfile.write(f"#define WEBSERVER_CALLBACK ")

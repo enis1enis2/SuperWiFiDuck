@@ -39,6 +39,25 @@ function fixFileName(fileName) {
 // ===== DOM Manipulation ===== //
 function status(mode) {
   current_status = mode;
+  var localizedMode = mode;
+
+  if (mode && mode.indexOf("running ") === 0) {
+    localizedMode = tr("status.running", { script: mode.substring(8) });
+  } else if (mode === "connected") {
+    localizedMode = tr("status.connected");
+  } else if (mode === "disconnected") {
+    localizedMode = tr("status.disconnected");
+  } else if (mode === "connecting...") {
+    localizedMode = tr("status.connecting");
+  } else if (mode === "error") {
+    localizedMode = tr("status.error");
+  } else if (mode === "reading...") {
+    localizedMode = tr("status.reading");
+  } else if (mode === "saving...") {
+    localizedMode = tr("status.saving");
+  } else if (mode === "ready") {
+    localizedMode = tr("status.ready");
+  }
 
   if (mode == "connected") {
     E("status").style.backgroundColor = "#3c5";
@@ -50,7 +69,7 @@ function status(mode) {
     E("status").style.backgroundColor = "#0ae";
   }
 
-  E("status").innerHTML = mode;
+  E("status").innerHTML = localizedMode;
 }
 
 // ===== Web Socket ===== //
@@ -111,10 +130,16 @@ function ws_update_status() {
   ws_send("status", status);
 }
 
+function get_ws_url() {
+  var protocol = window.location.protocol === "https:" ? "wss://" : "ws://";
+  var host = window.location.host && window.location.host.length > 0 ? window.location.host : "192.168.4.1";
+  return protocol + host + "/ws";
+}
+
 function ws_init() {
   status("connecting...");
 
-  ws = new WebSocket("ws://192.168.4.1/ws");
+  ws = new WebSocket(get_ws_url());
 
   ws.onopen = function(event) {
     log_ws("connected");
